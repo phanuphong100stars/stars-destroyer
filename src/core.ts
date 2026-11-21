@@ -1,6 +1,6 @@
 // destroyer core — types, config, module loading, scan, sets, path safety.
 // P1 = read-only: nothing here deletes anything. Targets carry an `action` (data) that a future `apply` will execute.
-import { readdirSync, existsSync, statSync, readFileSync, realpathSync, mkdirSync, writeFileSync } from 'node:fs'
+import { readdirSync, existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { $ } from 'bun'
@@ -60,10 +60,10 @@ export function validateTarget(t: Partial<Target>): string[] {
 }
 
 // ---------- config ----------
-export type Config = { roots: string[]; ignore: string[] }
+export type Config = { roots: string[] }
 export function readConfig(): Config {
   const f = join(CONFIG, 'config.toml'), c: any = existsSync(f) ? Bun.TOML.parse(readFileSync(f, 'utf8')) : {}
-  return { roots: c.roots ?? ['~/Project'], ignore: c.ignore ?? ['~/Library/Caches/BraveSoftware*', '~/.local/share/claude*'] } // ignore = Mole's job
+  return { roots: c.roots ?? ['~/Project'] }   // where your git repos live (projects module)
 }
 
 // ---------- context handed to modules ----------
@@ -101,33 +101,18 @@ export function makeCtx(cfg = readConfig()) {
   }
 }
 
-// ---------- loading modules (built-in, user, and no-code targets.toml) ----------
+// ---------- loading modules (built-in only: nothing a user drops in can widen what the tool is allowed to clean) ----------
 export type Loaded = { mod: Mod; source: string; file: string; status: 'loaded' | 'skipped'; why?: string }
-export function tomlModule(): Loaded | null {
-  const file = join(CONFIG, 'targets.toml'); if (!existsSync(file)) return null
-  const list: any[] = (Bun.TOML.parse(readFileSync(file, 'utf8')) as any).target ?? []
-  const mod: Mod = { id: 'targets.toml', async scan({ du }) {
-    const out: Target[] = []
-    for (const t of list) { const p = expand(t.path); if (!existsSync(p)) continue
-      out.push({ id: t.id, label: t.label ?? t.id, bytes: await du(p), tier: t.tier ?? 'C', regen: t.regen ?? 'ไม่ระบุ', paths: [p], action: { kind: 'rm', paths: [p] }, owners: t.owners }) }
-    return out } }
-  return { mod, source: 'no-code', file, status: 'loaded', why: `${list.length} targets` }
-}
 export async function load(ctx: Ctx): Promise<Loaded[]> {
-  const dirs: [string, string][] = [[join(import.meta.dir, 'modules'), 'built-in'], [process.env.DESTROYER_USER_MODULES ?? join(CONFIG, 'modules'), 'user']]
-  const out: Loaded[] = []
-  for (const [dir, source] of dirs) {
-    if (!existsSync(dir)) continue
-    for (const f of readdirSync(dir).filter(f => f.endsWith('.ts')).sort()) {
-      const file = join(dir, f)
-      try {
-        const mod: Mod = (await import(file)).default
-        const ok = mod.detect ? await mod.detect(ctx) : true
-        out.push({ mod, source, file, status: ok ? 'loaded' : 'skipped', why: ok ? undefined : 'detect() = false' })
-      } catch (e) { out.push({ mod: { id: f }, source, file, status: 'skipped', why: `error: ${e}` }) } // one broken module never breaks the rest
-    }
+  const dir = join(import.meta.dir, 'modules'), out: Loaded[] = []
+  for (const f of readdirSync(dir).filter(f => f.endsWith('.ts')).sort()) {
+    const file = join(dir, f)
+    try {
+      const mod: Mod = (await import(file)).default
+      const ok = mod.detect ? await mod.detect(ctx) : true
+      out.push({ mod, source: 'built-in', file, status: ok ? 'loaded' : 'skipped', why: ok ? undefined : 'detect() = false' })
+    } catch (e) { out.push({ mod: { id: f }, source: 'built-in', file, status: 'skipped', why: `error: ${e}` }) } // one broken module never breaks the rest
   }
-  const t = tomlModule(); if (t) out.push(t)
   return out
 }
 
@@ -141,6 +126,7 @@ export async function scan(ctx: Ctx, mods: Loaded[], hooks: ScanHooks = {}) {
     try {
       const ts = await l.mod.scan!(ctx); let n = 0, bytes = 0
       for (const t of ts) {
+        if (!inPreset(t.id)) continue                     // not in the preset = not shown, not cleanable
         const errs = validateTarget(t)
         if (errs.length) { warnings.push(`${id}: ข้าม "${t.id}" — ${errs.join('; ')}`); continue }
         if (seen.has(t.id)) { warnings.push(`${id}: id ซ้ำ "${t.id}" — ข้าม`); continue }
@@ -161,45 +147,19 @@ export async function scan(ctx: Ctx, mods: Loaded[], hooks: ScanHooks = {}) {
   return { targets, counts, warnings }
 }
 
-// ---------- sets (--set safe / sweep …) ----------
-export type SetDef = { tier?: Tier; only?: string[]; include?: string[] }
+// ---------- preset: the ONLY things this tool may clean (config/preset.toml is part of the code, not user config) ----------
+export type Preset = { name: string; allow: string[] }
 export const globRe = (g: string) => new RegExp('^' + g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$')
-export function resolveSet(name: string, defs: Record<string, SetDef>, targets: Target[], stack: string[] = []) {
-  const ids = new Set<string>(), missing: string[] = []
-  const d = defs[name]; if (!d) throw new Error(`ไม่มีชุดชื่อ "${name}"`)
-  if (stack.includes(name)) throw new Error(`ชุดวนกัน: ${[...stack, name].join(' → ')}`)
-  if (d.tier) {
-    if ((d.tier as string) === 'C') throw new Error(`ชุด "${name}": tier C เข้าชุดได้เฉพาะผ่าน only = [...] (ระบุเอง) ไม่รวมผ่าน tier`)
-    for (const t of targets) if (t.tier === d.tier) ids.add(t.id)
+export function loadPreset(file = join(import.meta.dir, '../config/preset.toml')): Preset {
+  const p: any = Bun.TOML.parse(readFileSync(file, 'utf8'))
+  if (!Array.isArray(p.allow) || !p.allow.length) throw new Error('preset.toml ต้องมี allow = [...] อย่างน้อย 1 รายการ')
+  for (const g of p.allow) {
+    if (typeof g !== 'string' || !/^[a-z][a-z-]*:\S+$/.test(g)) throw new Error(`preset: รูปแบบ "${g}" ไม่ถูกต้อง (ต้องเป็น module:ชื่อ)`)
+    if (/^[a-z][a-z-]*:\*+$/.test(g)) throw new Error(`preset: "${g}" กว้างเกินไป (ทั้ง module) — ระบุให้เจาะจง`)
   }
-  for (const pat of d.only ?? []) { const re = globRe(pat); const hit = targets.filter(t => re.test(t.id)); if (!hit.length) missing.push(pat); hit.forEach(t => ids.add(t.id)) }
-  for (const sub of d.include ?? []) { const r = resolveSet(sub, defs, targets, [...stack, name]); r.ids.forEach(i => ids.add(i)); missing.push(...r.missing) }
-  return { ids, missing }
+  return { name: p.name ?? 'preset', allow: p.allow }
 }
-export function loadSets(): { default?: string; sets: Record<string, SetDef> } {
-  const read = (f: string): any => (existsSync(f) ? Bun.TOML.parse(readFileSync(f, 'utf8')) : {})
-  const base = read(join(import.meta.dir, '../config/sets.toml')), user = read(join(CONFIG, 'sets.toml'))
-  return { default: user.default ?? base.default, sets: { ...(base.sets ?? {}), ...(user.sets ?? {}) } }
-}
-
-// ---------- targets.toml writer (used by `add`) ----------
-export function renderTargetToml(e: { id: string; label: string; path: string; tier: string; regen: string; owners?: string[] }) {
-  const q = (s: string) => JSON.stringify(s)
-  return `\n[[target]]\nid = ${q(e.id)}\nlabel = ${q(e.label)}\npath = ${q(e.path)}\ntier = ${q(e.tier)}\nregen = ${q(e.regen)}\n${e.owners?.length ? `owners = [${e.owners.map(q).join(', ')}]\n` : ''}`
-}
-export const daysAgo = (p: string) => { try { return Math.floor((Date.now() - statSync(p).mtimeMs) / 864e5) } catch { return 0 } }
-export const real = (p: string) => { try { return realpathSync(p) } catch { return p } }
-
-// ---------- user sets.toml edits (append / line-edit so your comments survive) ----------
-export function saveSet(name: string, only: string[], dir = CONFIG) {
-  const f = join(dir, 'sets.toml'); mkdirSync(dir, { recursive: true })
-  const cur = existsSync(f) ? readFileSync(f, 'utf8') : '', parsed: any = cur ? Bun.TOML.parse(cur) : {}
-  if (parsed.sets?.[name]) throw new Error(`มีชุด "${name}" ในไฟล์ของคุณแล้ว`)
-  const q = (s: string) => JSON.stringify(s), key = /^[\w-]+$/.test(name) ? name : q(name)
-  writeFileSync(f, (cur ? cur.replace(/\n*$/, '\n') : '') + `\n[sets.${key}]\nonly = [${only.map(q).join(', ')}]\n`)
-}
-export function setDefault(name: string, dir = CONFIG) {
-  const f = join(dir, 'sets.toml'); mkdirSync(dir, { recursive: true })
-  const cur = existsSync(f) ? readFileSync(f, 'utf8') : '', line = `default = ${JSON.stringify(name)}`
-  writeFileSync(f, /^default\s*=.*$/m.test(cur) ? cur.replace(/^default\s*=.*$/m, line) : line + '\n' + cur)
-}
+let presetCache: Preset | undefined
+export const preset = () => (presetCache ??= loadPreset())
+export const inPreset = (id: string, p: Preset = preset()) => p.allow.some(g => globRe(g).test(id))
+export const presetMissing = (targets: Target[], p: Preset = preset()) => p.allow.filter(g => !targets.some(t => globRe(g).test(t.id)))

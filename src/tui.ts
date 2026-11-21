@@ -27,7 +27,7 @@ export function pick(targets: Target[], initial: Set<string>, title: string, dk:
       const vh = Math.max(4, rows() - 7 - (infoL.length ? infoL.length + 1 : 0))
       if (at < top) top = Math.max(0, at - (flat[at - 1] && 'h' in flat[at - 1] ? 1 : 0))
       if (at >= top + vh) top = at - vh + 1
-      const L = [`  ${c.b(gradient('DESTROYER'))} ${c.dim('· เลือกสิ่งที่จะลบ · ชุด')} ${c.b(title)}`, '  ' + c.dim('[↑↓] เลื่อน  [space] เลือก  [i] ดูข้างใน  [a] tier A  [n] ไม่เลือก  [s] กลับชุดเริ่มต้น  [enter] ไปต่อ  [q] ออก'), '']
+      const L = [`  ${c.b(gradient('DESTROYER'))} ${c.dim('· สิ่งที่จะลบตาม preset')} ${c.b(title)}`, '  ' + c.dim('[↑↓] เลื่อน  [space] เลือก  [i] ดูข้างใน  [a] tier A  [n] ไม่เลือก  [s] เลือกทั้งหมดตาม preset  [enter] ไปต่อ  [q] ออก'), '']
       for (let i = top; i < Math.min(flat.length, top + vh); i++) {
         const r = flat[i]
         if ('h' in r) { L.push('  ' + rule(`${r.h} ${tierName[r.h]}`, tierC[r.h])); continue }

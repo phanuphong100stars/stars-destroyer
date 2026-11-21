@@ -1,6 +1,6 @@
 import { test, expect } from 'bun:test'
-import { checkPath, validateTarget, resolveSet, globRe, fmt, renderTargetToml, saveSet, setDefault, HOME, type Target } from '../src/core'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { checkPath, validateTarget, globRe, fmt, loadPreset, inPreset, presetMissing, HOME, type Target } from '../src/core'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -26,31 +26,27 @@ test('validateTarget: tier D and unsafe rm paths are rejected', () => {
   expect(validateTarget({ ...ok, action: { kind: 'rm', paths: [HOME] } }).length).toBeGreaterThan(0)
   expect(validateTarget({ ...ok, action: { kind: 'sudo', cmd: 'rm -rf /' } }).length).toBeGreaterThan(0)
 })
-test('resolveSet: tier set never pulls in tier C; only= patterns + include dedupe; missing reported', () => {
-  const defs = { safe: { tier: 'A' as const }, stale: { only: ['android:avd-userdata:*', 'android:ndk:28.*', 'nothing:*'] }, all: { include: ['safe', 'stale'] } }
-  expect([...resolveSet('safe', defs, targets).ids]).toEqual(['gradle:transforms'])
-  const r = resolveSet('all', defs, targets)
-  expect([...r.ids].sort()).toEqual(['android:avd-userdata:Pixel', 'android:ndk:28.2.1', 'gradle:transforms'])
-  expect(r.missing).toEqual(['nothing:*'])
-  expect(() => resolveSet('x', { x: { tier: 'C' as any } }, targets)).toThrow('tier C')
-  expect(() => resolveSet('a', { a: { include: ['b'] }, b: { include: ['a'] } }, targets)).toThrow('วนกัน')
-})
-test('globRe + fmt + targets.toml roundtrip', () => {
+test('globRe + fmt', () => {
   expect(globRe('android:ndk:28.*').test('android:ndk:28.2.13676358')).toBe(true)
   expect(globRe('android:ndk:28.*').test('android:ndk:27.0.1')).toBe(false)
   expect(fmt(1.5e9)).toBe('1.50 GB'); expect(fmt(794e6)).toBe('794 MB')
-  const e = { id: 'x', label: 'a · b', path: '~/Library/Application Support/Code/models', tier: 'B', regen: 'โหลดใหม่ "ได้"', owners: ['Visual Studio Code'] }
-  const parsed: any = Bun.TOML.parse(renderTargetToml(e))
-  expect(parsed.target[0]).toEqual(e)
 })
 
-test('set save / default: appends a set, keeps your comments, refuses duplicates, default goes above tables', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'dcfg-')), f = join(dir, 'sets.toml')
-  writeFileSync(f, '# my comment\n[sets.mine]\nonly = ["a:*"]\n')
-  saveSet('weekly', ['gradle:*', 'projects:*:.dart_tool'], dir)
-  expect(() => saveSet('weekly', ['x'], dir)).toThrow('มีชุด')
-  setDefault('weekly', dir); setDefault('mine', dir)                       // second call replaces, never duplicates
-  const txt = readFileSync(f, 'utf8'), parsed: any = Bun.TOML.parse(txt)
-  expect(txt).toContain('# my comment'); expect(txt.match(/^default/gm)!.length).toBe(1)
-  expect(parsed.default).toBe('mine'); expect(parsed.sets.weekly.only).toEqual(['gradle:*', 'projects:*:.dart_tool']); expect(parsed.sets.mine.only).toEqual(['a:*'])
+const P = { name: 't', allow: ['gradle:transforms', 'projects:*:.dart_tool', 'android:ndk:28.*'] }
+test('inPreset: exact + wildcard match; everything else is outside', () => {
+  expect(inPreset('gradle:transforms', P)).toBe(true); expect(inPreset('projects:demo:.dart_tool', P)).toBe(true); expect(inPreset('android:ndk:28.2.1', P)).toBe(true)
+  for (const id of ['gradle:modules', 'projects:demo:node_modules', 'android:ndk:27.0.1', 'xcode:runtime:26.5', 'gradle:transforms2', '']) expect(inPreset(id, P)).toBe(false)
+})
+test('presetMissing: reports patterns with no target on this machine', () => {
+  const t = (id: string) => ({ id } as Target)
+  expect(presetMissing([t('gradle:transforms')], P)).toEqual(['projects:*:.dart_tool', 'android:ndk:28.*'])
+})
+test('loadPreset: the shipped preset is valid, specific, and bounded; broad patterns are rejected', () => {
+  const shipped = loadPreset(); expect(shipped.allow.length).toBeGreaterThan(5); expect(shipped.allow.length).toBeLessThan(40)
+  for (const g of shipped.allow) { expect(g).toMatch(/^[a-z][a-z-]*:\S+$/); expect(g).not.toMatch(/^[a-z][a-z-]*:\*+$/) }
+  const tmp = (body: string) => { const f = join(mkdtempSync(join(tmpdir(), 'dpr-')), 'p.toml'); writeFileSync(f, body); return f }
+  expect(() => loadPreset(tmp('allow = ["*"]'))).toThrow('ไม่ถูกต้อง')
+  expect(() => loadPreset(tmp('allow = ["projects:*"]'))).toThrow('กว้างเกินไป')
+  expect(() => loadPreset(tmp('allow = []'))).toThrow('อย่างน้อย')
+  expect(() => loadPreset(tmp('name = "x"'))).toThrow()
 })

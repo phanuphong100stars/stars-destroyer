@@ -1,5 +1,5 @@
 // apply: plan → gates → confirm (type DESTROY) → run → summary. Dry-run never touches anything.
-import { fmt, short, clearCache, type Target } from './core'
+import { fmt, short, clearCache, inPreset, type Target } from './core'
 import { applyTarget, runningOwner, stopOwner, stoppable, logLine, logFile, type Outcome } from './exec'
 import { runScreen } from './tui'
 import { printTargets, disk, sum, fit, describe } from './view'
@@ -19,7 +19,7 @@ async function runPlain(items: Target[], run: (t: Target) => Promise<Outcome>, s
 }
 
 export async function applyFlow(all: Target[], ids: Set<string>, o: { dryRun: boolean; yes: boolean; stop: boolean; label: string }): Promise<number> {
-  const plan = all.filter(t => ids.has(t.id)).sort((a, b) => prio(a) - prio(b) || a.bytes - b.bytes)
+  const plan = all.filter(t => ids.has(t.id) && inPreset(t.id)).sort((a, b) => prio(a) - prio(b) || a.bytes - b.bytes)
   if (!plan.length) { out(c.am('ไม่มีรายการให้ลบ')); return 0 }
   const dk0 = await disk(), nC = plan.filter(t => t.tier === 'C').length, sudoB = sum(plan.filter(t => t.action.kind === 'sudo'))
   out(); out(rule('PLAN', c.dim, c.dim(o.dryRun ? 'dry-run — ไม่ลบอะไร' : `ชุด ${o.label}`)))

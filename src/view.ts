@@ -38,10 +38,9 @@ export function infoLines(t: Target, width = 100): string[] {
 export function summary(name: string, targets: Target[], ids: Set<string>, missing: string[], dk: Disk) {
   const sel = targets.filter(t => ids.has(t.id)), total = sum(sel), sudoB = sum(sel.filter(t => t.action.kind === 'sudo')), exec = total - sudoB, nC = sel.filter(t => t.tier === 'C').length
   out()
-  const L = [`${c.b(String(sel.length))} targets · ${fmt(total)} · tier C ${nC} ตัว ${c.dim('(ระบุเองในชุด)')}`, '']
+  const L = [`${c.b(String(sel.length))} targets · ${fmt(total)} · tier C ${nC} ตัว ${c.dim('(อยู่ใน preset)')}`, '']
   if (color) L.push(...bigNum((exec / 1e9).toFixed(2)).map(l => '  ' + l), `${c.gr('GB')} ที่ลบได้จริง${sudoB ? c.dim(` · ขั้นที่ต้อง sudo ${fmt(sudoB)} จะพิมพ์ให้ ไม่รันเอง`) : ''}`)
   else L.push(`ลบได้จริง ${fmt(exec)}${sudoB ? ` (ขั้นที่ต้อง sudo ${fmt(sudoB)} จะพิมพ์ให้ ไม่รันเอง)` : ''}`)
   if (dk) { const after = dk.avail + exec; L.push('', `ว่างตอนนี้ ${fmt(dk.avail)} ${c.dim('→')} ${c.gr(c.b(fmt(after)))} ${c.dim(`(${(after / dk.total * 100).toFixed(1)}% ของ ${fmt(dk.total)})`)}`) }
-  rail(`SET "${name}" — แผนถ้า apply (ยังไม่ลบอะไร)`, L)
-  if (missing.length) out(c.am('! รูปแบบในชุดที่ไม่เจอเป้าแล้ว: ') + c.dim(missing.join(', ')))
+  rail(`PRESET "${name}" — แผนถ้า apply (ยังไม่ลบอะไร)`, L)
 }

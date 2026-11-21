@@ -1,6 +1,6 @@
 {
   "name": "destroyer",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "ตัวล้างพื้นที่สำหรับ mobile dev (Flutter / iOS / Android) — สแกน → เลือก → dry-run → DESTROY → ลบ",
   "private": true,
   "type": "module",

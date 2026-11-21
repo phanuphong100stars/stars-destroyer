@@ -1,0 +1,29 @@
+# PRESET — สิ่งเดียวที่ destroyer ลบได้. ไฟล์นี้เป็นส่วนหนึ่งของโค้ด (แก้ + commit ที่ repo เท่านั้น ไม่มี config ผู้ใช้ทับ)
+# บังคับใช้ที่ตัวลบ (exec.ts) และที่ scan: อะไรที่ไม่ตรงรายการนี้ — จะไม่ถูกแสดง และลบไม่ได้ ไม่ว่าจะเรียกจากทางไหน
+# รูปแบบ: <module>:<ชื่อ> ใช้ * ได้ (ห้ามเป็น "*" หรือ "<module>:*" ล้วน — กว้างเกินไป)
+name = "sweep"
+allow = [
+  # A — สร้างใหม่เอง ไม่เสียข้อมูล
+  "gradle:transforms",
+  "gradle:build-cache",
+  "dart:analysis-server",
+  "vscode:cached-vsix",
+  "xcode:sim-syscache",              # ต้อง sudo — destroyer พิมพ์คำสั่งให้ ไม่รันเอง
+  "xcode:sim-appcache:*",            # cache + tmp ของแอปใน simulator
+  "android:avd-snapshots:*",
+  "projects:*:.dart_tool",
+  "projects:*:ios/build",
+  "projects:*:android/.gradle",
+  "projects:*:android/build",
+  "projects:*:android/app/build",
+  "projects:*:*/.next",
+  # B — ต้องโหลดใหม่ / ข้อมูลใน emulator
+  "android:avd-userdata:*",
+  # C — ตัดสินเอง (ต้องพิมพ์ DESTROY เสมอ)
+  "android:avd:*",
+  "android:image:android-34:*",
+  "android:ndk:28.*",
+  "xcode:sim:iphone-18-pro-max-*",
+  "ai:hf:*",
+  "flutter:sdk:flutter-3.35.0",
+]

@@ -16,7 +16,7 @@ const writeState = (s: object) => { try { mkdirSync(dirname(stateFile()), { recu
 export const shouldNotify = (last: number | undefined, now: number, cooldownH: number) => !last || now - last >= cooldownH * 3_600_000
 // argv for osascript (no shell). quotes/backslashes escaped so scan data can never break out of the AppleScript string
 export const notifyArgs = (title: string, body: string) => { const q = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"'); return ['osascript', '-e', `display notification "${q(body)}" with title "${q(title)}"`] }
-export const message = (avail: number, thrGB: number, reclaim: number) => ({ title: `destroyer · ดิสก์เหลือ ${fmt(avail)}`, body: `ต่ำกว่า ${thrGB} GB — ล้าง tier A ได้ราว ${fmt(reclaim)} (ไม่ลบเอง) · รัน destroyer ใน terminal` })
+export const message = (avail: number, thrGB: number, reclaim: number) => ({ title: `destroyer · ดิสก์เหลือ ${fmt(avail)}`, body: `ต่ำกว่า ${thrGB} GB — ล้างตาม preset ได้ราว ${fmt(reclaim)} (ไม่ลบเอง) · รัน destroyer ใน terminal` })
 const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 export function plistFor(o: { bun: string; cli: string; everyMin: number; thresholdGB: number; cooldownH: number; path: string; log: string }) {
   const args = [o.bun, o.cli, 'watch', 'check', '--threshold', String(o.thresholdGB), '--cooldown', String(o.cooldownH)]
@@ -52,13 +52,13 @@ export async function runWatch(sub: string, a: A): Promise<number> {
     const dk = await disk(); if (!dk) { out(`${stamp()} ${c.rd('✗')} อ่านพื้นที่ว่างไม่ได้`); return 1 }
     if (dk.avail >= thr * 1e9) { out(`${stamp()} ${c.gr('✓')} ว่าง ${fmt(dk.avail)} (≥ ${thr} GB) — ไม่ต้องเตือน`); return 0 }
     const ctx = makeCtx(), { targets } = await scan(ctx, await load(ctx)); saveCache()
-    const A_ = targets.filter(t => t.tier === 'A'), reclaim = sum(A_) - sum(A_.filter(t => t.action.kind === 'sudo'))
+    const reclaim = sum(targets) - sum(targets.filter(t => t.action.kind === 'sudo'))   // targets = preset only
     const m = message(dk.avail, thr, reclaim), mode = a.flag('notify') ?? 'osascript'
     if (!a.has('force') && !shouldNotify(readState().lastNotify, Date.now(), cool)) { out(`${stamp()} ${c.am('⚠')} ว่าง ${fmt(dk.avail)} (< ${thr} GB) — เพิ่งเตือนไปแล้ว (cooldown ${cool} ชม.)`); return 0 }
     if (mode === 'osascript') Bun.spawnSync(notifyArgs(m.title, m.body))
     else if (mode === 'print') out(`${c.am('🔔')} ${c.b(m.title)}\n   ${m.body}`)
     writeState({ lastNotify: Date.now() })
-    out(`${stamp()} ${c.am('⚠')} ว่าง ${fmt(dk.avail)} (< ${thr} GB) — ล้าง tier A ได้ ~${fmt(reclaim)} · แจ้งเตือน: ${mode}`); return 0
+    out(`${stamp()} ${c.am('⚠')} ว่าง ${fmt(dk.avail)} (< ${thr} GB) — ล้างตาม preset ได้ ~${fmt(reclaim)} · แจ้งเตือน: ${mode}`); return 0
   }
 
   if (sub === 'install') {
