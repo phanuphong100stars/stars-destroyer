@@ -1,6 +1,7 @@
 // shared printing helpers
 import { $ } from 'bun'
-import { fmt, type Target } from './core'
+import { fmt, short, type Target } from './core'
+import { runningOwner } from './exec'
 import { out, c, tierC, tierName, bar, rule, rail, bigNum, color, cols } from './ui'
 
 export type Disk = { total: number; avail: number } | null
@@ -23,6 +24,16 @@ export function printTargets(targets: Target[], sel?: Set<string>) {
       out(`${mark}${c.hi(t.id.padEnd(idw))} ${bar(t.bytes / max, 14, tierC[tier])} ${fmt(t.bytes).padStart(9)}  ${lab}${sudo ? c.am(' ⚠sudo') : ''}${note ? c.dim('  — ' + note) : ''}`)
     }
   }
+}
+export const describe = (t: Target) => { const a = t.action; return a.kind === 'rm' ? `${a.keepDir ? 'ลบข้างใน' : 'ลบ'} ${a.paths.map(short).join(', ')}` : a.kind === 'exec' ? a.argv.map(short).join(' ') : `${a.cmd}  (พิมพ์ให้ ไม่รันเอง)` }
+// detail block for one target. values are cut to `width` BEFORE colouring so lines never wrap
+export function infoLines(t: Target, width = 100): string[] {
+  const vw = (k: string) => [...k].filter(ch => !/\p{Mn}/u.test(ch)).length   // Thai vowel/tone marks take no column
+  const w = Math.max(30, width - 16), L = (k: string, v: string) => `${c.dim(k + ' '.repeat(Math.max(1, 12 - vw(k))))}${fit(v, w)}`
+  const own = (t.owners ?? []).map(o => (runningOwner(o).length ? `${o} (รันอยู่ — เป้านี้จะถูกข้าม)` : `${o} (ไม่ได้รัน)`))
+  return [`${tierC[t.tier](t.tier)} ${c.dim(tierName[t.tier])}  ${c.dim('·')}  ${c.b(fmt(t.bytes))}`, L('คืออะไร', t.label), L('ลบแล้ว', t.regen),
+    ...t.paths.slice(0, 3).map(p => L('ที่อยู่', short(p))), ...(t.paths.length > 3 ? [c.dim(`${''.padEnd(11)}… และอีก ${t.paths.length - 3} ที่`)] : []),
+    L('ถ้า apply', describe(t)), ...(own.length ? [L('ต้องปิดก่อน', own.join(', '))] : []), ...(t.note ? [L('หมายเหตุ', t.note)] : [])]
 }
 export function summary(name: string, targets: Target[], ids: Set<string>, missing: string[], dk: Disk) {
   const sel = targets.filter(t => ids.has(t.id)), total = sum(sel), sudoB = sum(sel.filter(t => t.action.kind === 'sudo')), exec = total - sudoB, nC = sel.filter(t => t.tier === 'C').length

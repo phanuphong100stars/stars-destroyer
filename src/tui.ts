@@ -1,7 +1,7 @@
 // full-screen pieces: the tick-box picker and the run screen (alt screen buffer; restored on exit).
 import { fmt, type Target } from './core'
 import { c, tierC, tierName, bar, rule, bigNum, gradient, shatter, SPIN } from './ui'
-import { fit, meter, sum, type Disk } from './view'
+import { fit, meter, sum, infoLines, type Disk } from './view'
 import type { Outcome } from './exec'
 
 const ESC = '\x1b'
@@ -17,16 +17,17 @@ function frame(lines: string[]) {
 // ---------- picker ----------
 export function pick(targets: Target[], initial: Set<string>, title: string, dk: Disk): Promise<Set<string> | null> {
   return new Promise(resolve => {
-    const sel = new Set(initial); let cur = 0, top = 0
+    const sel = new Set(initial); let cur = 0, top = 0, info = false
     const idw = Math.min(46, Math.max(...targets.map(t => t.id.length), 10)), max = Math.max(...targets.map(t => t.bytes), 1)
     const flat: ({ h: 'A' | 'B' | 'C' } | { t: Target })[] = []
     for (const tier of ['A', 'B', 'C'] as const) { const g = targets.filter(t => t.tier === tier); if (!g.length) continue; flat.push({ h: tier }); g.forEach(t => flat.push({ t })) }
     const idx = flat.map((r, i) => ('t' in r ? i : -1)).filter(i => i >= 0)
     const draw = () => {
-      const vh = Math.max(6, rows() - 7), at = idx[cur]
+      const at = idx[cur], infoL = info ? infoLines((flat[at] as { t: Target }).t, process.stdout.columns || 100) : []
+      const vh = Math.max(4, rows() - 7 - (infoL.length ? infoL.length + 1 : 0))
       if (at < top) top = Math.max(0, at - (flat[at - 1] && 'h' in flat[at - 1] ? 1 : 0))
       if (at >= top + vh) top = at - vh + 1
-      const L = [`  ${c.b(gradient('DESTROYER'))} ${c.dim('· เลือกสิ่งที่จะลบ · ชุด')} ${c.b(title)}`, '  ' + c.dim('[↑↓] เลื่อน  [space] เลือก  [a] tier A  [n] ไม่เลือก  [s] กลับชุดเริ่มต้น  [enter] ดูแผน  [q] ออก'), '']
+      const L = [`  ${c.b(gradient('DESTROYER'))} ${c.dim('· เลือกสิ่งที่จะลบ · ชุด')} ${c.b(title)}`, '  ' + c.dim('[↑↓] เลื่อน  [space] เลือก  [i] ดูข้างใน  [a] tier A  [n] ไม่เลือก  [s] กลับชุดเริ่มต้น  [enter] ไปต่อ  [q] ออก'), '']
       for (let i = top; i < Math.min(flat.length, top + vh); i++) {
         const r = flat[i]
         if ('h' in r) { L.push('  ' + rule(`${r.h} ${tierName[r.h]}`, tierC[r.h])); continue }
@@ -34,6 +35,7 @@ export function pick(targets: Target[], initial: Set<string>, title: string, dk:
         L.push(`${on ? c.rd('❯') : ' '} ${sel.has(t.id) ? c.gr('[x]') : c.dim('[ ]')} ${(on ? c.b : c.hi)(fit(t.id, idw).padEnd(idw))} ${bar(t.bytes / max, 12, tierC[t.tier])} ${fmt(t.bytes).padStart(9)}  ${fit(t.label, room)}${t.action.kind === 'sudo' ? c.am(' ⚠sudo') : ''}`)
       }
       while (L.length < vh + 3) L.push('')
+      if (infoL.length) { L.push('  ' + rule('รายละเอียด', c.vi)); for (const l of infoL) L.push('  ' + l) }
       const chosen = targets.filter(t => sel.has(t.id)), tot = sum(chosen), exec = tot - sum(chosen.filter(t => t.action.kind === 'sudo')), nC = chosen.filter(t => t.tier === 'C').length
       L.push('  ' + c.dim('─'.repeat(40)), `  เลือก ${c.b(String(chosen.length))} · ${fmt(tot)} · ลบได้จริง ${c.gr(c.b(fmt(exec)))}${nC ? c.or(` · tier C ${nC}`) : ''}`)
       if (dk) L.push(`  ว่าง ${fmt(dk.avail)} ${c.dim('→')} ${c.gr(c.b(fmt(dk.avail + exec)))}`)
@@ -48,6 +50,7 @@ export function pick(targets: Target[], initial: Set<string>, title: string, dk:
       else if (k === '\x1b[B' || k === 'j') cur = Math.min(idx.length - 1, cur + 1)
       else if (k === ' ') { const t = (flat[idx[cur]] as { t: Target }).t; sel.has(t.id) ? sel.delete(t.id) : sel.add(t.id) }
       else if (k === 'a') { const A = targets.filter(t => t.tier === 'A'), all = A.every(t => sel.has(t.id)); A.forEach(t => (all ? sel.delete(t.id) : sel.add(t.id))) }
+      else if (k === 'i' || k === '?') info = !info
       else if (k === 'n') sel.clear()
       else if (k === 's') { sel.clear(); initial.forEach(i => sel.add(i)) }
       draw()

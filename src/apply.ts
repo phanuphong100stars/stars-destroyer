@@ -2,11 +2,10 @@
 import { fmt, short, clearCache, type Target } from './core'
 import { applyTarget, runningOwner, stopOwner, stoppable, logLine, logFile, type Outcome } from './exec'
 import { runScreen } from './tui'
-import { printTargets, disk, sum, fit } from './view'
+import { printTargets, disk, sum, fit, describe } from './view'
 import { out, c, live, rail, rule, word, color, gradient } from './ui'
 
 const prio = (t: Target) => (t.action.kind === 'exec' && t.action.argv.includes('runtime') ? 2 : t.action.kind === 'sudo' ? 3 : 0) // devices before the runtime they live on; sudo last
-const describe = (t: Target) => { const a = t.action; return a.kind === 'rm' ? `${a.keepDir ? 'ลบข้างใน' : 'ลบ'} ${a.paths.map(short).join(', ')}` : a.kind === 'exec' ? a.argv.map(short).join(' ') : `${a.cmd}  (พิมพ์ให้ ไม่รันเอง)` }
 const yes = (q: string) => (prompt(q) ?? '').trim().toLowerCase() === 'y'
 
 async function runPlain(items: Target[], run: (t: Target) => Promise<Outcome>, stop: () => boolean) {

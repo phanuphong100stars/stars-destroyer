@@ -5,9 +5,10 @@ import { join } from 'node:path'
 import { CONFIG, expand, short, fmt, slug, checkPath, globRe, makeCtx, load, scan, loadSets, resolveSet, validateTarget, renderTargetToml, saveSet, setDefault, cacheStats, saveCache, type Target, type Mod } from './core'
 import { out, c, tierC, tierName, banner, bar, rule, rail, Live, SPIN, live } from './ui'
 import { discover, tierGuess } from './discover'
-import { sum, fit, disk, meter, printTargets, summary } from './view'
+import { sum, fit, disk, meter, printTargets, summary, infoLines } from './view'
 import { pick } from './tui'
 import { applyFlow } from './apply'
+import { runWatch } from './watch'
 import pkg from '../package.json'
 
 const args = process.argv.slice(2)
@@ -67,6 +68,7 @@ async function main() {
     if (sel.missing.length) out(c.am('! รูปแบบที่ไม่เจอเป้า: ') + c.dim(sel.missing.join(', ')))
     process.exitCode = await applyFlow(r.targets, sel.ids, { dryRun: has('dry-run'), yes: has('yes'), stop: has('stop-daemons'), label: sel.label }); return
   }
+  if (cmd === 'watch') { process.exitCode = await runWatch(rest[0] ?? 'status', { flag, has }); return }
   if (cmd === 'modules') {
     const mods = await load(makeCtx()); out(rule('MODULES'))
     for (const l of mods) out(`${l.status === 'loaded' ? c.gr('✓') : c.dim('○')} ${l.mod.id.padEnd(16)} ${c.dim((l.mod.kind ?? 'cleaner').padEnd(9) + ' ' + l.source.padEnd(9))} ${c.dim(l.why ?? '')}`)
@@ -76,9 +78,7 @@ async function main() {
     const id = rest[0]; if (!id) die('ใช้: destroyer show <id>')
     const r = await doScan(false), t = r.targets.find(x => x.id === id)
     if (!t) { const near = r.targets.filter(x => x.id.includes(id)).slice(0, 5).map(x => x.id); die(`ไม่เจอ "${id}"${near.length ? ' — ใกล้เคียง: ' + near.join(', ') : ' (ลอง destroyer scan ดู id)'}`) }
-    const a = t!.action, how = a.kind === 'rm' ? `${a.keepDir ? 'ลบ "ข้างใน" เก็บโฟลเดอร์' : 'ลบทั้งโฟลเดอร์'}: ${a.paths.map(short).join(', ')}` : a.kind === 'exec' ? `รันเครื่องมือเจ้าของ: ${a.argv.map(x => short(x)).join(' ')}` : `พิมพ์ให้คุณรันเอง: ${a.cmd}`
-    rail(t!.id, [`${tierC[t!.tier](t!.tier)} ${c.dim(tierName[t!.tier])}`, `${c.dim('คืออะไร  ')}${t!.label}`, `${c.dim('ขนาด     ')}${c.b(fmt(t!.bytes))}`, `${c.dim('ลบแล้ว   ')}${t!.regen}`,
-      ...t!.paths.map(p => `${c.dim('ที่อยู่    ')}${short(p)}`), `${c.dim('ถ้า apply ')}${how}`, ...(t!.owners?.length ? [`${c.dim('ต้องปิดก่อน')} ${t!.owners.join(', ')}`] : []), ...(t!.note ? [`${c.dim('หมายเหตุ  ')}${t!.note}`] : []), `${c.dim('module    ')}${t!.module}`, '', c.dim('show = อ่านอย่างเดียว — ลบจริงด้วย destroyer apply --only ' + t!.id)], tierC[t!.tier])
+    rail(t!.id, [...infoLines(t!, process.stdout.columns || 100), `${c.dim('module     ')}${t!.module}`, '', c.dim('show = อ่านอย่างเดียว — ลบจริงด้วย destroyer apply --only ' + t!.id)], tierC[t!.tier])
     return
   }
   if (cmd === 'set') {
@@ -160,6 +160,6 @@ export default {
     if (bad) process.exit(1); return
   }
   out(rule('destroyer'))
-  for (const [a, b] of [['destroyer', 'สแกน → ติ๊กเลือก → แผน → พิมพ์ DESTROY → ลบ (ใน terminal)'], ['scan [--set ชุด] [--json]', 'สแกนเป็นตาราง (อ่านอย่างเดียว)'], ['apply --set ชุด | --only id,…', 'ลบแบบไม่ติ๊ก · เพิ่ม --dry-run เพื่อดูแผนเฉยๆ · --yes (ไม่มี tier C) · --stop-daemons'], ['show <id>', 'ดูรายละเอียดและสิ่งที่ apply จะทำ'], ['discover [--min MB]', 'หาโฟลเดอร์ใหญ่ที่ยังไม่มีใครดูแล'], ['add <โฟลเดอร์>', 'เพิ่มเองบรรทัดเดียว (ไม่ต้องเขียนโค้ด)'], ['new <ชื่อ> · check <ไฟล์>', 'สร้าง/ตรวจ module แบบมีโค้ด'], ['modules · set list|show|save|default', 'ดู module / จัดการชุดสำเร็จรูป']]) out(`  ${c.hi(a.padEnd(34))} ${c.dim(b)}`)
+  for (const [a, b] of [['destroyer', 'สแกน → ติ๊กเลือก → แผน → พิมพ์ DESTROY → ลบ (ใน terminal)'], ['scan [--set ชุด] [--json]', 'สแกนเป็นตาราง (อ่านอย่างเดียว)'], ['apply --set ชุด | --only id,…', 'ลบแบบไม่ติ๊ก · เพิ่ม --dry-run เพื่อดูแผนเฉยๆ · --yes (ไม่มี tier C) · --stop-daemons'], ['show <id>', 'ดูรายละเอียดและสิ่งที่ apply จะทำ'], ['discover [--min MB]', 'หาโฟลเดอร์ใหญ่ที่ยังไม่มีใครดูแล'], ['add <โฟลเดอร์>', 'เพิ่มเองบรรทัดเดียว (ไม่ต้องเขียนโค้ด)'], ['new <ชื่อ> · check <ไฟล์>', 'สร้าง/ตรวจ module แบบมีโค้ด'], ['watch status|check|install|uninstall', 'เตือนก่อนดิสก์เต็ม (ไม่ลบเอง) — launchd ทุก N นาที'], ['modules · set list|show|save|default', 'ดู module / จัดการชุดสำเร็จรูป']]) out(`  ${c.hi(a.padEnd(34))} ${c.dim(b)}`)
 }
 main().then(() => process.exit(process.exitCode ?? 0), e => { out(c.rd('✗ ') + (e?.stack ?? e)); process.exit(1) })

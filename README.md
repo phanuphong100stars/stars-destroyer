@@ -16,7 +16,7 @@ chmod +x src/cli.ts && ln -s "$PWD/src/cli.ts" ~/.local/bin/destroyer   # ต้
 ## Flow ของ `destroyer` (พิมพ์คำเดียว)
 สแกนสด → หน้าติ๊กเลือก (ติ๊กชุดเริ่มต้นไว้ให้) → แผน + gates → พิมพ์ `DESTROY` → หน้ารัน (แท่งแตก/เลขใหญ่/log) → สรุป
 
-หน้าติ๊กเลือก: `↑↓`/`jk` เลื่อน · `space` เลือก · `a` tier A ทั้งหมด · `n` ไม่เลือก · `s` กลับชุดเริ่มต้น · `enter` ไปต่อ · `q` ออก (ออกที่ไหนก็ไม่ลบอะไร)
+หน้าติ๊กเลือก: `↑↓`/`jk` เลื่อน · `space` เลือก · **`i` ดูข้างใน** (path, ลบแล้วเกิดอะไร, สิ่งที่ apply จะทำ, แอปเจ้าของรันอยู่ไหม — แผงเลื่อนตามเคอร์เซอร์) · `a` tier A ทั้งหมด · `n` ไม่เลือก · `s` กลับชุดเริ่มต้น · `enter` ไปต่อ · `q` ออก (ออกที่ไหนก็ไม่ลบอะไร)
 
 | คำสั่ง | ทำอะไร |
 |---|---|
@@ -27,6 +27,7 @@ chmod +x src/cli.ts && ln -s "$PWD/src/cli.ts" ~/.local/bin/destroyer   # ต้
 | `destroyer discover [--min MB]` | หาโฟลเดอร์ใหญ่ที่ยังไม่มีใครดูแล |
 | `destroyer add <โฟลเดอร์>` | เพิ่มเองบรรทัดเดียว (เขียน `~/.config/destroyer/targets.toml` ไม่ต้องมีโค้ด) |
 | `destroyer new <ชื่อ>` · `check <ไฟล์>` | module แบบมีโค้ด: สร้าง template / ตรวจก่อนใช้ |
+| `destroyer watch status\|check\|install\|uninstall` | เตือนก่อนดิสก์เต็ม (ดูหัวข้อ Watch) — **ไม่ลบอะไร** |
 | `destroyer modules` · `set list\|show\|save\|default` | module ที่โหลด / ชุดสำเร็จรูป (`set save ชื่อ --only …`, `set default ชื่อ`) |
 
 ## กฎความปลอดภัย (เทสไว้ทั้งหมด — `bun test`)
@@ -38,6 +39,19 @@ chmod +x src/cli.ts && ln -s "$PWD/src/cli.ts" ~/.local/bin/destroyer   # ต้
 - **แอปที่เป็นเจ้าของกำลังรัน = ข้ามเป้านั้น** (VS Code, Xcode, Simulator, Android emulator, …). เฉพาะ Gradle daemon / Dart analysis server ถามให้หยุดให้ได้ (`y/N`, ค่าเริ่มต้น N)
 - **tier C เข้าชุดได้เฉพาะ `only = [...]`** ที่เขียนเอง — ชุด `tier = "A"` ไม่มีวันรวม C
 - ทุกการลบเขียน log ที่ `~/Library/Logs/destroyer/YYYY-MM-DD.jsonl`
+
+## Watch — เตือนก่อนดิสก์เต็ม (ไม่ลบเอง)
+```bash
+destroyer watch install                       # ตรวจทุก 60 นาที เตือนเมื่อว่าง < 20 GB (ถามยืนยันก่อน) — ปรับ: --threshold 25 --every 30 --cooldown 6
+destroyer watch status                        # ติดตั้งอยู่ไหม / ว่างเท่าไร / เตือนล่าสุด
+destroyer watch check [--notify print]        # ตรวจครั้งเดียว (launchd เรียกตัวนี้) · --force ข้าม cooldown
+destroyer watch uninstall
+destroyer watch install --print               # ดู plist ที่จะเขียน โดยไม่ติดตั้งอะไร
+```
+- ติดตั้ง = เขียน `~/Library/LaunchAgents/com.stars.destroyer.watch.plist` + `launchctl bootstrap` (ถอนด้วย `uninstall`). ไม่ได้ติดตั้งเองจนกว่าคุณสั่ง
+- เมื่อว่างต่ำกว่าเกณฑ์: สแกน → แจ้งเตือน macOS "ล้าง tier A ได้ราว X GB" แล้ว **จบ** — ไม่ลบอะไร; เตือนซ้ำไม่เกินทุก `--cooldown` ชม. (ค่าเริ่มต้น 6)
+- log: `~/Library/Logs/destroyer/watch.log` · plist ใช้ path `bun` ถาวร (`…/bin/bun`) ไม่ใช่ path ที่มีเลขเวอร์ชัน และฝัง `PATH` ของ shell ตอนติดตั้ง
+- `--no-load` (install/uninstall) = เขียน/ลบไฟล์เฉยๆ ไม่แตะ launchctl (ใช้ตอนทดสอบ)
 
 ## Tier
 **A** ล้างได้เลย สร้างใหม่เอง ไม่เสียข้อมูล · **B** ต้องโหลด/ติดตั้งใหม่ (ใช้เน็ตหรือเวลา) · **C** ตัดสินเอง (device, runtime, SDK, โมเดล)
@@ -53,10 +67,11 @@ module ส่ง **ข้อมูล** กลับ (path, ขนาด, tier, 
 สแกนรอบแรก ~15 วิ (บางโฟลเดอร์มีไฟล์เป็นแสน เช่น `.dartServer` 315,000 ไฟล์ → `du` ~11 วิ). ขนาดถูกจำไว้ 10 นาทีที่ `~/.cache/destroyer/du.json` → รอบถัดไป ~0.5 วิ (ล้างอัตโนมัติหลัง apply). `--fresh` = วัดใหม่ทั้งหมด. `discover` ข้ามโฟลเดอร์ที่ module ดูแลอยู่แล้ว (~2 วิ)
 
 ## สิ่งที่ตรวจแล้ว / ยังไม่ได้ตรวจ
-- ✓ เทส: กฎ path, tier, ชุด, targets.toml, `set save/default`, การลบจริงบนโฟลเดอร์ชั่วคราว (ลบ/keepDir/symlink/ปฏิเสธ/dry-run), allowlist ของคำสั่ง, pattern ตรวจแอปที่รัน
+- ✓ เทส (17): กฎ path, tier, ชุด, targets.toml, `set save/default`, การลบจริงบนโฟลเดอร์ชั่วคราว (ลบ/keepDir/symlink/ปฏิเสธ/dry-run), allowlist ของคำสั่ง, pattern ตรวจแอปที่รัน, watch (cooldown, escape ของ osascript, plist ผ่าน `plutil -lint`)
 - ✓ ทดสอบครบวงจร (สแกน → dry-run → ลบ → ปฏิเสธ tier C ด้วย `--yes` → log) และหน้าจอเลือก/รันผ่านเทอร์มินัลเสมือน บน **HOME ปลอม** (`HOME=$(mktemp -d)`)
 - ✗ **ยังไม่เคยรันลบบนข้อมูลจริง** และคำสั่งภายนอก (`simctl delete`, `runtime delete`, `avdmanager`, `sdkmanager`) ผ่านเทสแค่ฝั่ง allowlist — ไม่ได้ถูกรันจริงในเทสเพราะจะแก้ระบบจริง → ใช้ครั้งแรกให้เริ่มจาก `--dry-run` และ tier A
+- `watch install` ยังไม่เคยโหลดเข้า launchd จริง (ทดสอบแค่ `--no-load` + `plutil -lint` บน HOME ปลอม) และไม่เคยเด้งแจ้งเตือนจริงในเทส (ใช้ `--notify print`)
 - แท่งในหน้ารันเป็นแอนิเมชันตามเวลา ไม่ใช่ความคืบหน้าจริงของ `rm` (เป้าใหญ่ช้าจะค้างราว 92% จนเสร็จ)
 
 ## ยังไม่มี
-`watch` (เตือนเมื่อดิสก์ใกล้เต็ม), ปุ่ม `i` ดูข้างในในหน้าติ๊ก
+เตือนผ่านช่องทางอื่นนอกจาก macOS notification (เช่น Slack), ตั้งเกณฑ์ใน `config.toml` (ตอนนี้ใช้ flag ที่ฝังใน plist)
