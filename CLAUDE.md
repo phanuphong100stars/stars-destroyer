@@ -4,12 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`destroyer` — macOS-only disk cleaner for mobile dev (Flutter / iOS / Android). Bare `destroyer` = scan → one screen ("ล้างได้เลย" = tier A, one Enter; tier B/C = yes/no questions, default keep) → delete. `destroyer --pick` = the older tick-each-item picker → plan → type `DESTROY`. Runtime is **bun** (TypeScript run directly, no build step, no dependencies, no `bun install`). User-facing strings and most comments are Thai; keep that style when touching UI text.
+`hellbringer` (renamed from `destroyer` 2026-11) — macOS-only toolbox for mobile dev (Flutter / iOS / Android): the cleaner (tool name **DESTROYER**), `fever`, `siren`. Bare `hellbringer` = hub menu (`hub.ts`: DESTROYER / FEVER / SIREN; cursor starts on DESTROYER) and `hellbringer destroyer` = the cleaner directly: scan → one screen ("ล้างได้เลย" = tier A, one Enter; tier B/C = yes/no questions, default keep) → delete. `hellbringer --pick` = the older tick-each-item picker → plan → type `DESTROY`. Runtime is **bun** (TypeScript run directly, no build step, no dependencies, no `bun install`). User-facing strings and most comments are Thai; keep that style when touching UI text.
+
+**Naming:** user-facing text says `hellbringer`; the old `destroyer` command still works as an alias (`package.json` bin + `~/.local/bin/destroyer` symlink). On-disk names deliberately stay `destroyer` so existing data and the installed watch keep working: `~/.config/destroyer`, `~/.cache/destroyer`, `~/Library/Logs/destroyer`, launchd label `com.stars.destroyer.watch`, `DESTROYER_*` env vars, the repo folder and git remote. Do not "finish the rename" there without a migration.
 
 ## Commands
 
 ```bash
-bun test                                         # all tests (28)
+bun test                                         # all tests (49)
 bun test test/exec.test.ts                       # one file
 bun test test/exec.test.ts -t "PRESET LOCK"      # one test by name
 bun run scan                                     # = bun run src/cli.ts scan (read-only)
@@ -49,12 +51,16 @@ Preset globs are `module:name` with `*` wildcards; `loadPreset` rejects bare `*`
 
 **Home screen (`plan.ts` + `home.ts`):** `classify()` is pure (process checks injected) and sorts targets into `auto` (tier A), `sudo` (printed), `skip` (owner app running), `stops`, and `ask` (tier B/C grouped by `questionKey` — one yes/no per kind, default keep). `homeScreen` returns the ids to apply (auto + sudo + skip + "yes" answers); `cli.ts` then calls `applyFlow(..., { yes: true, stop: true, quiet: true })`, so the existing `hasC` rule still forces `DESTROY` whenever a tier C answer was "yes". The Enter button must only ever count tier A + yes-answers, and `watch`'s notification quotes the same number (tier A, no sudo).
 
+**Hub (`hub.ts`):** `cli.ts` shows it only for bare `hellbringer` in a TTY, after the scan (the cleaner's status line needs `classify()`), and on Enter runs the chosen tool's default command (`runFever` / `runSiren status`) or falls through to `homeScreen`. `hubItems`/`hubView` are pure and tested. Do not probe devices there: siren's status is static because `adb devices` starts the adb daemon.
+
 **UI split:** `ui.ts` (colors, `Live`, spinner; `live` = TTY check), `view.ts` (target tables, disk, summaries), `home.ts` (home screen), `tui.ts` (`--pick` picker + run screen; exports `enter/leave/frame` for `home.ts`). The run screen shows elapsed time, not a %, because `rm` reports no progress. `apply.ts` falls back to `runPlain` when not a TTY. `watch.ts` is a launchd notifier (`com.stars.destroyer.watch`) that only measures free space and notifies; it must never delete.
+
+**Extra tools (`src/tools/`)** — `fever.ts` (read-only machine check-up) and `siren.ts` (test push / deep link into booted simulators/emulators). Neither deletes anything, so neither goes through the preset lock. Shape to copy for a new tool: pure parsers/validators exported and unit-tested with real command output as fixtures; the raw commands injected (`Sh` / `Io`) so tests never touch a device; argv arrays only, never a shell. `siren` hard rules: targets come only from `simctl … booted` and `adb` serials matching `emulator-N` (a real phone is never listed), Android push is not supported (needs FCM), the single string that reaches a device shell has its url single-quoted after `URL_OK` validation, and it reads `DESTROYER_CONFIG` at call time. Both are wired in `cli.ts` as `hellbringer fever` / `hellbringer siren`.
 
 **Size cache:** `du` results cached 10 min in `~/.cache/destroyer/du.json` (`~/.dartServer` alone is ~315k files); `clearCache()` runs after a successful apply.
 
 ## Conventions
 
-- Commits follow `feat(destroyer): ...` / `feat(destroyer)!: ...` style (see `git log`).
+- Commits follow `feat(hellbringer): ...` / `feat(hellbringer)!: ...` (older history says `destroyer`) style (see `git log`).
 - Code is deliberately dense/minimal; `ponytail:` comments mark intentional shortcuts.
 - Any new behavior that deletes or widens scope needs a test that runs on a temp dir (`mkdtempSync`), never real paths.

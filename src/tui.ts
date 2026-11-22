@@ -27,7 +27,7 @@ export function pick(targets: Target[], initial: Set<string>, title: string, dk:
       const vh = Math.max(4, rows() - 7 - (infoL.length ? infoL.length + 1 : 0))
       if (at < top) top = Math.max(0, at - (flat[at - 1] && 'h' in flat[at - 1] ? 1 : 0))
       if (at >= top + vh) top = at - vh + 1
-      const L = [`  ${c.b(gradient('DESTROYER'))} ${c.dim('· สิ่งที่จะลบตาม preset')} ${c.b(title)}`, '  ' + c.dim('[↑↓] เลื่อน  [space] เลือก  [i] ดูข้างใน  [a] tier A  [n] ไม่เลือก  [s] เลือกทั้งหมดตาม preset  [enter] ไปต่อ  [q] ออก'), '']
+      const L = [`  ${c.b(gradient('HELLBRINGER'))} ${c.dim('· สิ่งที่จะลบตาม preset')} ${c.b(title)}`, '  ' + c.dim('[↑↓] เลื่อน  [space] เลือก  [i] ดูข้างใน  [a] tier A  [n] ไม่เลือก  [s] เลือกทั้งหมดตาม preset  [enter] ไปต่อ  [q] ออก'), '']
       for (let i = top; i < Math.min(flat.length, top + vh); i++) {
         const r = flat[i]
         if ('h' in r) { L.push('  ' + rule(`${r.h} ${tierName[r.h]}`, tierC[r.h])); continue }
@@ -80,7 +80,7 @@ export async function runScreen(items: Target[], run: (t: Target) => Promise<Out
     n++; shown += (freed - shown) * 0.25; if (Math.abs(freed - shown) < 2e6) shown = freed
     const avail = dk ? dk.avail + shown : 0
     if (n % 3 === 0 && dk) samples.push(avail)
-    const L = [`  ${c.b(gradient('DESTROYER'))} ${c.dim(`· apply · ${items.length} targets · ${fmt(total)}`)}   ${c.dim(clock())}`, '', ...bigNum((shown / 1e9).toFixed(2)).map(r => '  ' + r),
+    const L = [`  ${c.b(gradient('HELLBRINGER'))} ${c.dim(`· apply · ${items.length} targets · ${fmt(total)}`)}   ${c.dim(clock())}`, '', ...bigNum((shown / 1e9).toFixed(2)).map(r => '  ' + r),
       `  ${c.gr('GB')} ${c.dim('freed ·')} ${st.filter(x => x.s !== 'queued' && x.s !== 'run').length}/${st.length} ${c.dim('เสร็จ')}`]
     if (dk) { const lo = dk.avail, hi = dk.avail + total || 1, spark = samples.slice(-30).map(v => SPK[Math.min(7, Math.max(0, Math.round(((v - lo) / (hi - lo || 1)) * 7)))]).join(''); L.push(`  ${c.dim('DISK')} ${meter(1 - avail / dk.total, 30)} ${c.b('ว่าง ' + fmt(avail))} ${c.dim(`(${((avail / dk.total) * 100).toFixed(1)}%)`)}  ${c.gr(spark)}`) } else L.push('')
     L.push('')

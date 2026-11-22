@@ -68,7 +68,7 @@ async function removePath(p: string, keepDir: boolean, home: string): Promise<nu
 export async function applyTarget(t: Target, o: { home?: string; dryRun?: boolean; preset?: Preset } = {}): Promise<Outcome> {
   const t0 = performance.now(), home = o.home ?? HOME, a = t.action
   const res = (status: Outcome['status'], message?: string, cmd?: string): Outcome => ({ id: t.id, status, bytes: status === 'done' ? t.bytes : 0, ms: Math.round(performance.now() - t0), message, cmd })
-  if (!inPreset(t.id, o.preset ?? preset())) return res('failed', 'ไม่อยู่ใน preset — ปฏิเสธ (destroyer ลบได้เฉพาะรายการใน config/preset.toml)')   // the lock: last line of defence, whoever called us
+  if (!inPreset(t.id, o.preset ?? preset())) return res('failed', 'ไม่อยู่ใน preset — ปฏิเสธ (hellbringer ลบได้เฉพาะรายการใน config/preset.toml)')   // the lock: last line of defence, whoever called us
   if (a.kind === 'sudo') return res('printed', undefined, a.cmd)   // never executed
   if (o.dryRun) return res('dry')
   try {

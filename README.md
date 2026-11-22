@@ -1,20 +1,20 @@
 <div align="center">
 
 ```
-████  █████  ████ █████ ████   ███  █   █ █████ ████
-█   █ █     █       █   █   █ █   █  █ █  █     █   █
-█   █ ████   ███    █   ████  █   █   █   ████  ████
-█   █ █         █   █   █  █  █   █   █   █     █  █
-████  █████ ████    █   █   █  ███    █   █████ █   █
+█   █ █████ █     █     ████  ████  █████ █   █  ████ █████ ████
+█   █ █     █     █     █   █ █   █   █   ██  █ █     █     █   █
+█████ ████  █     █     ████  ████    █   █ █ █ █  ██ ████  ████
+█   █ █     █     █     █   █ █  █    █   █  ██ █   █ █     █  █
+█   █ █████ █████ █████ ████  █   █ █████ █   █  ████ █████ █   █
 ```
 
-**ตัวล้างพื้นที่สำหรับ mobile dev — ล็อกเป็น preset เดียว**
+**ชุดเครื่องมือสำหรับ mobile dev — ล้างพื้นที่ (destroyer) · ไข้เครื่อง (fever) · ยิง push/deep link ทดสอบ (siren)**
 
-เห็นก่อน · ยืนยันก่อน · ลบได้เฉพาะที่ตกลงไว้ในไฟล์เดียว
+เห็นก่อน · ยืนยันก่อน · ลบได้เฉพาะที่ตกลงไว้ในไฟล์เดียว (ตัวล้าง destroyer ล็อกเป็น preset เดียว)
 
 [เริ่มใช้](#เริ่มใช้-ใน-3-นาที) · [ลบอะไรได้บ้าง](#ลบอะไรได้บ้าง-preset) · [ความปลอดภัย](#ความปลอดภัย) · [คำสั่ง](#คำสั่ง) · [Watch](#watch--เตือนก่อนดิสก์เต็ม) · [FAQ](#faq)
 
-`macOS` · `bun` · ไม่มี dependency · 28 tests · v0.4.0
+`macOS` · `bun` · ไม่มี dependency · 49 tests · v0.5.0
 
 </div>
 
@@ -25,7 +25,7 @@
 Mac ของคน Flutter / iOS / Android เต็มเร็วมาก — Gradle, AVD, Simulator, DerivedData, `.dart_tool`, โมเดลที่โหลดค้าง รวมกันได้หลายสิบ GB.
 ลบมือก็เสี่ยงลบผิด ส่วนเครื่องมือทั่วไป ([Mole](https://github.com/tw93/Mole), CleanMyMac) ไม่รู้จักของฝั่ง Android/Flutter หรือเลือกข้ามไว้ (เช่น Gradle, AVD).
 
-**destroyer แก้ด้วยการจำกัดขอบเขตให้แคบที่สุด:**
+**hellbringer แก้ด้วยการจำกัดขอบเขตให้แคบที่สุด:**
 
 | | |
 |---|---|
@@ -34,7 +34,7 @@ Mac ของคน Flutter / iOS / Android เต็มเร็วมาก �
 | 👀 **ดูก่อนลบเสมอ** | เห็นยอดที่จะได้คืนก่อนกด Enter · ของที่เอากลับยาก (tier C) ต้องพิมพ์ `DESTROY` · `--dry-run` ไม่แตะอะไรเลย |
 | 🧯 **ไม่ลบใต้เท้าแอปที่เปิดอยู่** | VS Code / Xcode / Simulator / emulator รันอยู่ = ข้ามเป้านั้น |
 
-> ทำงานคู่กับ Mole ได้: Mole ดูแลของทั่วไป (cache, browser, brew) · destroyer ดูแล preset ของ mobile dev
+> ทำงานคู่กับ Mole ได้: Mole ดูแลของทั่วไป (cache, browser, brew) · hellbringer ดูแล preset ของ mobile dev
 
 ---
 
@@ -45,16 +45,17 @@ Mac ของคน Flutter / iOS / Android เต็มเร็วมาก �
 ```bash
 git clone git@github.com:phanuphong100stars/stars-destroyer.git ~/Project/Personal/destroyer
 cd ~/Project/Personal/destroyer
-bun test                                                          # 28 tests ควรผ่านหมด
-chmod +x src/cli.ts && ln -s "$PWD/src/cli.ts" ~/.local/bin/destroyer   # ให้พิมพ์สั้นๆ ว่า destroyer
+bun test                                                          # 49 tests ควรผ่านหมด
+chmod +x src/cli.ts && ln -s "$PWD/src/cli.ts" ~/.local/bin/hellbringer   # ให้พิมพ์สั้นๆ ว่า hellbringer
+ln -s "$PWD/src/cli.ts" ~/.local/bin/hellbringer                     # ชื่อเดิม ยังใช้ได้ (จะสร้างหรือไม่ก็ได้)
 ```
 
 **ครั้งแรกทำตามลำดับนี้:**
 
 | ขั้น | คำสั่ง | ได้อะไร |
 |---|---|---|
-| 1 | `destroyer apply --dry-run` | ดูแผนทั้งหมด **ไม่ลบอะไร** |
-| 2 | `destroyer` | หน้าเดียว: เห็นยอด “ล้างได้เลย” → กด `Enter` ของที่เสี่ยงกว่าเป็นคำถามใช่/ไม่ (ค่าเริ่มต้นคือเก็บไว้) |
+| 1 | `hellbringer apply --dry-run` | ดูแผนทั้งหมด **ไม่ลบอะไร** |
+| 2 | `hellbringer` | หน้าเดียว: เห็นยอด “ล้างได้เลย” → กด `Enter` ของที่เสี่ยงกว่าเป็นคำถามใช่/ไม่ (ค่าเริ่มต้นคือเก็บไว้) |
 | 3 | ดูสรุปท้ายจอ | ขนาดที่คืน + คำสั่ง `sudo` (ถ้ามี) ให้คัดลอกไปรันเอง |
 
 <details>
@@ -83,7 +84,7 @@ PRESET "sweep" — ทำได้แค่นี้ (20 รูปแบบใ�
 ## ทำงานยังไง
 
 ```
-destroyer ─▶ สแกน ─▶ หน้าเดียว (plan.ts แยกให้เอง) ─▶ Enter ─▶ ลบ ─▶ สรุป + log
+hellbringer destroyer ─▶ สแกน ─▶ หน้าเดียว (plan.ts แยกให้เอง) ─▶ Enter ─▶ ลบ ─▶ สรุป + log
                        │
                        ├ ล้างได้เลย  = tier A · กด Enter ครั้งเดียว ไม่ถามอะไร
                        ├ ขอถามก่อน   = tier B/C รวมเป็นคำถามใช่/ไม่ต่อกลุ่ม · ค่าเริ่มต้นคือเก็บไว้
@@ -94,7 +95,7 @@ destroyer ─▶ สแกน ─▶ หน้าเดียว (plan.ts แย
 
 หน้าแรก: ตัวเลขใหญ่ = ยอดที่ Enter จะล้างจริง · `1`–`9` สลับคำตอบของแต่ละคำถาม · `d` ดูละเอียด (id, path) · `enter` ล้าง · `q` ออก (ออกที่ไหนก็ไม่ลบอะไร)
 
-อยากเลือกทีละรายการเอง: `destroyer --pick` — `↑↓`/`jk` เลื่อน · `space` เลือก/เอาออก · **`i` ดูข้างใน** · `a` tier A · `n` ไม่เลือก · `s` เลือกทั้งหมดตาม preset · `enter` ไปต่อ (ต้องผ่านแผน + พิมพ์ `DESTROY`) · `q` ออก
+อยากเลือกทีละรายการเอง: `hellbringer --pick` — `↑↓`/`jk` เลื่อน · `space` เลือก/เอาออก · **`i` ดูข้างใน** · `a` tier A · `n` ไม่เลือก · `s` เลือกทั้งหมดตาม preset · `enter` ไปต่อ (ต้องผ่านแผน + พิมพ์ `DESTROY`) · `q` ออก
 
 ---
 
@@ -121,7 +122,7 @@ destroyer ─▶ สแกน ─▶ หน้าเดียว (plan.ts แย
 | | `flutter:sdk:flutter-3.35.0` | `git clone` ใหม่ |
 
 แผนที่มีรายการ tier C **ต้องพิมพ์ `DESTROY` เสมอ** (`--yes` ข้ามไม่ได้).
-ดูว่าเครื่องคุณเจออะไรบ้าง: `destroyer preset`
+ดูว่าเครื่องคุณเจออะไรบ้าง: `hellbringer preset`
 
 **จะเพิ่ม/ตัดรายการ?** แก้ `config/preset.toml` แล้ว commit ที่ repo — ไม่มี config ผู้ใช้ทับ. รูปแบบกว้างอย่าง `*` หรือ `projects:*` โหลดไม่ผ่าน (บังคับให้เจาะจง).
 
@@ -129,7 +130,7 @@ destroyer ─▶ สแกน ─▶ หน้าเดียว (plan.ts แย
 
 ## ความปลอดภัย
 
-destroyer **จะไม่**:
+hellbringer **จะไม่**:
 
 | ไม่ทำ | กันด้วย |
 |---|---|
@@ -150,13 +151,16 @@ destroyer **จะไม่**:
 
 | คำสั่ง | ทำอะไร |
 |---|---|
-| `destroyer` | สแกน → หน้าเดียว (ล้างได้เลย + คำถามใช่/ไม่) → `Enter` → ลบ → สรุป · คำสั่ง sudo ถูกคัดลอกไว้ในคลิปบอร์ดให้ · จบแล้วเสนอเปิดเตือนดิสก์ครั้งเดียว *(ต้องรันใน terminal)* |
-| `destroyer --pick` | โหมดเลือกเอง: ติ๊ก/เอาออกทีละรายการ → แผน + gates → `DESTROY` → ลบ (หน้าหลักแบบเดิม) |
-| `destroyer scan [--json]` | ดูอย่างเดียว ไม่ลบ |
-| `destroyer apply [--dry-run] [--yes] [--skip id,…] [--stop-daemons]` | ลบตาม preset แบบไม่ติ๊ก · `--dry-run` ดูแผนเฉยๆ · `--yes` ข้าม `DESTROY` (**เฉพาะแผนไม่มี tier C**) · `--skip` เอาออกอย่างเดียว เพิ่มไม่ได้ · `--stop-daemons` หยุด Gradle daemon / Dart analysis server ให้เอง |
-| `destroyer show <id>` | รายละเอียดของรายการใน preset |
-| `destroyer preset` | preset อนุญาตอะไรบ้าง และเจอในเครื่องกี่รายการ |
-| `destroyer watch status \| check \| install \| uninstall` | เตือนก่อนดิสก์เต็ม |
+| `hellbringer` | สแกน → **เมนูเครื่องมือ** DESTROYER · FEVER · SIREN (↑↓ หรือเลข แล้ว `Enter` · เคอร์เซอร์เริ่มที่ DESTROYER) *(ต้องรันใน terminal)* |
+| `hellbringer destroyer` | ข้ามเมนู ล้างพื้นที่เลย: สแกน → หน้าเดียว (ล้างได้เลย + คำถามใช่/ไม่) → `Enter` → ลบ → สรุป · คำสั่ง sudo ถูกคัดลอกไว้ในคลิปบอร์ดให้ · จบแล้วเสนอเปิดเตือนดิสก์ครั้งเดียว |
+| `hellbringer --pick` | โหมดเลือกเอง: ติ๊ก/เอาออกทีละรายการ → แผน + gates → `DESTROY` → ลบ (หน้าหลักแบบเดิม) |
+| `hellbringer scan [--json]` | ดูอย่างเดียว ไม่ลบ |
+| `hellbringer apply [--dry-run] [--yes] [--skip id,…] [--stop-daemons]` | ลบตาม preset แบบไม่ติ๊ก · `--dry-run` ดูแผนเฉยๆ · `--yes` ข้าม `DESTROY` (**เฉพาะแผนไม่มี tier C**) · `--skip` เอาออกอย่างเดียว เพิ่มไม่ได้ · `--stop-daemons` หยุด Gradle daemon / Dart analysis server ให้เอง |
+| `hellbringer show <id>` | รายละเอียดของรายการใน preset |
+| `hellbringer preset` | preset อนุญาตอะไรบ้าง และเจอในเครื่องกี่รายการ |
+| `hellbringer watch status \| check \| install \| uninstall` | เตือนก่อนดิสก์เต็ม |
+| `hellbringer fever [--json] [--reboot-after N]` | ไข้เครื่อง: แบตเตอรี่ (สุขภาพ/รอบ/เหลือกี่ชม.) · เปิดเครื่องมานานแค่ไหน (เตือนรีสตาร์ทเมื่อเกิน N วัน ค่าเริ่มต้น 14) · load ต่อแกน · แอปที่กิน RAM/CPU มากสุด (รวมโปรเซสของแอปเดียวกันเป็นบรรทัดเดียว) — **อ่านอย่างเดียว** ไม่ปิดอะไรให้ |
+| `hellbringer siren [status \| push <ชื่อ> \| link <ชื่อ>] [--device id] [--all] [--dry-run]` | ยิง push ทดสอบ (iOS Simulator เท่านั้น เพราะ Android ต้องผ่าน FCM) และ deep link (iOS + Android emulator) จากรายการใน `~/.config/destroyer/siren.toml` · **ส่งเข้า simulator/emulator ที่เปิดอยู่เท่านั้น** ไม่ส่งเข้าเครื่องจริงหรือเซิร์ฟเวอร์ · ไม่มีเครื่องเปิด = ไม่ส่งอะไร |
 
 เพิ่ม `--fresh` วัดขนาดใหม่ทั้งหมด · `--plain` ปิดสี/แอนิเมชัน (pipe หรือ `NO_COLOR` ก็ปิดเอง)
 
@@ -165,10 +169,10 @@ destroyer **จะไม่**:
 ## Watch — เตือนก่อนดิสก์เต็ม
 
 ```bash
-destroyer watch install            # ตรวจทุก 60 นาที เตือนเมื่อว่าง < 20 GB (ถามยืนยันก่อน)
-destroyer watch install --print    # ดู plist ที่จะเขียน โดยไม่ติดตั้งอะไร
-destroyer watch status             # ติดตั้งอยู่ไหม / ว่างเท่าไร / เตือนล่าสุด
-destroyer watch uninstall
+hellbringer watch install            # ตรวจทุก 60 นาที เตือนเมื่อว่าง < 20 GB (ถามยืนยันก่อน)
+hellbringer watch install --print    # ดู plist ที่จะเขียน โดยไม่ติดตั้งอะไร
+hellbringer watch status             # ติดตั้งอยู่ไหม / ว่างเท่าไร / เตือนล่าสุด
+hellbringer watch uninstall
 ```
 
 ปรับได้: `--threshold 25` · `--every 30` (นาที) · `--cooldown 6` (ชม. ระหว่างการเตือน).
@@ -182,13 +186,13 @@ destroyer watch uninstall
 <details>
 <summary><b>ทำไมบางรายการถูกข้าม ("‖ … กำลังรัน")?</b></summary>
 
-เจ้าของของนั้นยังเปิดอยู่ — เช่น VS Code เปิดอยู่เลยข้าม `vscode:*` (ลบ cache ใต้เท้าแอปที่ใช้อยู่ไม่ปลอดภัย). ปิดแอปแล้วรันใหม่. Gradle daemon กับ Dart analysis server หยุดให้เองอัตโนมัติ (หน้าแรกบอกไว้ล่วงหน้า) — ใน `destroyer apply` ต้องใส่ `--stop-daemons` เอง.
+เจ้าของของนั้นยังเปิดอยู่ — เช่น VS Code เปิดอยู่เลยข้าม `vscode:*` (ลบ cache ใต้เท้าแอปที่ใช้อยู่ไม่ปลอดภัย). ปิดแอปแล้วรันใหม่. Gradle daemon กับ Dart analysis server หยุดให้เองอัตโนมัติ (หน้าแรกบอกไว้ล่วงหน้า) — ใน `hellbringer apply` ต้องใส่ `--stop-daemons` เอง.
 </details>
 
 <details>
 <summary><b>ทำไมชื่อ "Jarred Sumner" โผล่ใน System Settings → Login Items?</b></summary>
 
-งาน `watch` รัน `bun` และ macOS แสดงชื่อ **ผู้เซ็นโปรแกรมที่ถูกรัน** — `bun` เซ็นด้วย `Developer ID Application: Jarred Sumner` (ผู้สร้าง Bun) ไม่ใช่ชื่อโปรเจกต์นี้. ปิดได้ที่ toggle นั้น หรือ `destroyer watch uninstall`.
+งาน `watch` รัน `bun` และ macOS แสดงชื่อ **ผู้เซ็นโปรแกรมที่ถูกรัน** — `bun` เซ็นด้วย `Developer ID Application: Jarred Sumner` (ผู้สร้าง Bun) ไม่ใช่ชื่อโปรเจกต์นี้. ปิดได้ที่ toggle นั้น หรือ `hellbringer watch uninstall`.
 </details>
 
 <details>
@@ -200,13 +204,13 @@ destroyer watch uninstall
 <details>
 <summary><b>ต้องใช้ sudo ไหม?</b></summary>
 
-มีรายการเดียวที่ต้องใช้: `xcode:sim-syscache` (CoreSimulator system cache, `/Library/Developer/CoreSimulator/Caches`). destroyer ไม่รันเป็น root — จะ **พิมพ์คำสั่ง** ให้คัดลอกไปรันเองท้ายสรุป. ที่เหลือไม่ต้อง sudo.
+มีรายการเดียวที่ต้องใช้: `xcode:sim-syscache` (CoreSimulator system cache, `/Library/Developer/CoreSimulator/Caches`). hellbringer ไม่รันเป็น root — จะ **พิมพ์คำสั่ง** ให้คัดลอกไปรันเองท้ายสรุป. ที่เหลือไม่ต้อง sudo.
 </details>
 
 <details>
 <summary><b>ต่างจาก Mole ยังไง?</b></summary>
 
-Mole เป็นเครื่องมือล้างเครื่องทั่วไป (กว้าง) · destroyer เป็น preset แคบเฉพาะ mobile dev และ **ล็อกขอบเขต** ที่ตัวลบ ใช้คู่กันได้ — ให้ Mole ดูแล cache/browser/brew ส่วน destroyer ดูแล Gradle/AVD/Simulator/Flutter.
+Mole เป็นเครื่องมือล้างเครื่องทั่วไป (กว้าง) · hellbringer เป็น preset แคบเฉพาะ mobile dev และ **ล็อกขอบเขต** ที่ตัวลบ ใช้คู่กันได้ — ให้ Mole ดูแล cache/browser/brew ส่วน hellbringer ดูแล Gradle/AVD/Simulator/Flutter.
 </details>
 
 <details>
@@ -230,6 +234,7 @@ src/
   apply.ts           ← plan → gates → (DESTROY ถ้ามี tier C) → run → สรุป
   view.ts · ui.ts    ← การแสดงผลร่วม
   watch.ts           ← เตือนก่อนดิสก์เต็ม (launchd)
+  tools/             ← เครื่องมือเสริมที่ไม่ได้ลบอะไร: fever.ts (ไข้เครื่อง) · siren.ts (ยิง push/deep link ทดสอบ)
   modules/           ← ตัวสแกน: xcode android gradle dart projects ai vscode stale-projects
 test/                ← bun test (28 tests)
 ```
@@ -250,10 +255,10 @@ test/                ← bun test (28 tests)
 - ทดสอบครบวงจรบน **HOME ปลอม**: scan โชว์เฉพาะ preset · ยัด module/`targets.toml` เอง, `--only`, `--set`, คำสั่งที่ถูกถอด → ลบของนอก preset ไม่ได้ · หน้าจอเลือก/รันผ่านเทอร์มินัลเสมือน
 
 **ยังไม่ได้ตรวจ**
-- รันลบจริงบนเครื่องจริงแล้วเมื่อ 2026-11-21 (log: `~/Library/Logs/destroyer/2026-11-21.jsonl`): สำเร็จ 15 · ล้มเหลว 3 · คืนพื้นที่ 40.94 GB — ครั้งแรกบนเครื่องใหม่ให้เริ่มจาก `destroyer apply --dry-run`
+- รันลบจริงบนเครื่องจริงแล้วเมื่อ 2026-11-21 (log: `~/Library/Logs/destroyer/2026-11-21.jsonl`): สำเร็จ 15 · ล้มเหลว 3 · คืนพื้นที่ 40.94 GB — ครั้งแรกบนเครื่องใหม่ให้เริ่มจาก `hellbringer apply --dry-run`
 - ❗ `avdmanager`/`sdkmanager` ล้มเหลว 3 รายการในรอบจริง เพราะเครื่องไม่มี `JAVA_HOME` และไม่มี Java ของระบบ ("Unable to locate a Java Runtime") — แก้แล้ว: ส่ง `JAVA_HOME` เป็น JDK ในตัวของ Android Studio ให้คำสั่งลูก (เฉพาะเมื่อ `JAVA_HOME` ว่างหรือใช้ไม่ได้) ยืนยันด้วยมือแล้วว่า `avdmanager list avd` ทำงานได้ด้วย JDK นั้น แต่ **ยังไม่ได้รันลบจริงซ้ำหลังแก้** · `simctl delete` / `simctl runtime delete` ยังไม่เคยถูกรันจริง
 - หน้ารันไม่แสดง % เพราะ `rm` ไม่รายงานความคืบหน้า — แถวที่กำลังลบแสดงเวลาที่ผ่านไป ส่วนความคืบหน้ารวมนับเป็น “เสร็จ n จาก m รายการ”
-- หน้าแรกใหม่ (`destroyer`) ทดสอบผ่านเทอร์มินัลเสมือนบน HOME ปลอม 4 กรณี: `q` ออก · Enter ครั้งเดียว (tier A เท่านั้น ไม่ถาม DESTROY) · ตอบ “ลบ” tier C แล้วพิมพ์ DESTROY · พิมพ์ยืนยันผิด = ไม่ลบอะไร · ยังไม่เคยลบของจริงบนเครื่องจริง และการหยุด Gradle daemon อัตโนมัติยังไม่ได้ทดสอบกับ daemon จริง
+- หน้าแรกใหม่ (`hellbringer`) ทดสอบผ่านเทอร์มินัลเสมือนบน HOME ปลอม 4 กรณี: `q` ออก · Enter ครั้งเดียว (tier A เท่านั้น ไม่ถาม DESTROY) · ตอบ “ลบ” tier C แล้วพิมพ์ DESTROY · พิมพ์ยืนยันผิด = ไม่ลบอะไร · ยังไม่เคยลบของจริงบนเครื่องจริง และการหยุด Gradle daemon อัตโนมัติยังไม่ได้ทดสอบกับ daemon จริง
 - `watch` ผ่านเทสบน HOME ปลอมและ `plutil -lint`; การเด้งแจ้งเตือนจริงไม่ได้ถูกยิงในเทส
 </details>
 

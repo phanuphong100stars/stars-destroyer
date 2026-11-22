@@ -22,7 +22,9 @@ export function gradient(s: string, from = [255, 122, 69], to = [193, 75, 255]) 
 }
 const GL: Record<string, string[]> = {
   D: ['████ ', '█   █', '█   █', '█   █', '████ '], E: ['█████', '█    ', '████ ', '█    ', '█████'], S: [' ████', '█    ', ' ███ ', '    █', '████ '],
-  T: ['█████', '  █  ', '  █  ', '  █  ', '  █  '], R: ['████ ', '█   █', '████ ', '█  █ ', '█   █'], O: [' ███ ', '█   █', '█   █', '█   █', ' ███ '], Y: ['█   █', ' █ █ ', '  █  ', '  █  ', '  █  '],
+  T: ['█████', '  █  ', '  █  ', '  █  ', '  █  '],
+  H: ['█   █', '█   █', '█████', '█   █', '█   █'], L: ['█    ', '█    ', '█    ', '█    ', '█████'], B: ['████ ', '█   █', '████ ', '█   █', '████ '],
+  I: ['█████', '  █  ', '  █  ', '  █  ', '█████'], N: ['█   █', '██  █', '█ █ █', '█  ██', '█   █'], G: [' ████', '█    ', '█  ██', '█   █', ' ████'], R: ['████ ', '█   █', '████ ', '█  █ ', '█   █'], O: [' ███ ', '█   █', '█   █', '█   █', ' ███ '], Y: ['█   █', ' █ █ ', '  █  ', '  █  ', '  █  '],
 }
 const DG: Record<string, string[]> = {
   '0': ['███', '█ █', '█ █', '█ █', '███'], '1': [' █ ', '██ ', ' █ ', ' █ ', '███'], '2': ['███', '  █', '███', '█  ', '███'], '3': ['███', '  █', '███', '  █', '███'], '4': ['█ █', '█ █', '███', '  █', '  █'],
@@ -37,9 +39,9 @@ export function bigText(str: string, font: Record<string, string[]>, wide: boole
 export const bigNum = (s: string, paint = c.gr) => bigText(s, DG, true).map(l => paint(l))
 export function banner(version: string) {
   if (!color) return
-  const wide = cols() >= 112
-  for (const l of bigText('DESTROYER', GL, wide)) out('  ' + gradient(l))
-  out('  ' + c.dim(`mobile-dev disk annihilator · v${version} · dry-run first · allowlist ✓ · tier D locked`))
+  const wide = cols() >= 136   // HELLBRINGER = 11 letters × 12 columns when doubled
+  for (const l of bigText('HELLBRINGER', GL, wide)) out('  ' + gradient(l))
+  out('  ' + c.dim(`hellbringer · mobile-dev toolbox · v${version} · dry-run first · allowlist ✓ · tier D locked`))
   out()
 }
 // proportional bar with 1/8 steps

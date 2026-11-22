@@ -1,9 +1,15 @@
 {
-  "name": "destroyer",
-  "version": "0.4.0",
-  "description": "ตัวล้างพื้นที่สำหรับ mobile dev (Flutter / iOS / Android) — สแกน → เลือก → dry-run → DESTROY → ลบ",
+  "name": "hellbringer",
+  "version": "0.5.0",
+  "description": "เครื่องมือรวมสำหรับ dev (Flutter / iOS / Android) — ล้างพื้นที่ (destroyer) · ไข้เครื่อง (fever) · ยิง push/deep link ทดสอบ (siren) · เห็นก่อน ยืนยันก่อน ลบได้เฉพาะที่ตกลงไว้",
   "private": true,
   "type": "module",
-  "bin": { "destroyer": "src/cli.ts" },
-  "scripts": { "scan": "bun run src/cli.ts scan", "test": "bun test" }
+  "bin": {
+    "hellbringer": "src/cli.ts",
+    "destroyer": "src/cli.ts"
+  },
+  "scripts": {
+    "scan": "bun run src/cli.ts scan",
+    "test": "bun test"
+  }
 }

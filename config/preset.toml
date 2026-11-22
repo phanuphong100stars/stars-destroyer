@@ -1,4 +1,4 @@
-# PRESET — สิ่งเดียวที่ destroyer ลบได้. ไฟล์นี้เป็นส่วนหนึ่งของโค้ด (แก้ + commit ที่ repo เท่านั้น ไม่มี config ผู้ใช้ทับ)
+# PRESET — สิ่งเดียวที่ hellbringer ลบได้. ไฟล์นี้เป็นส่วนหนึ่งของโค้ด (แก้ + commit ที่ repo เท่านั้น ไม่มี config ผู้ใช้ทับ)
 # บังคับใช้ที่ตัวลบ (exec.ts) และที่ scan: อะไรที่ไม่ตรงรายการนี้ — จะไม่ถูกแสดง และลบไม่ได้ ไม่ว่าจะเรียกจากทางไหน
 # รูปแบบ: <module>:<ชื่อ> ใช้ * ได้ (ห้ามเป็น "*" หรือ "<module>:*" ล้วน — กว้างเกินไป)
 name = "sweep"
@@ -8,7 +8,7 @@ allow = [
   "gradle:build-cache",
   "dart:analysis-server",
   "vscode:cached-vsix",
-  "xcode:sim-syscache",              # ต้อง sudo — destroyer พิมพ์คำสั่งให้ ไม่รันเอง
+  "xcode:sim-syscache",              # ต้อง sudo — hellbringer พิมพ์คำสั่งให้ ไม่รันเอง
   "xcode:sim-appcache:*",            # cache + tmp ของแอปใน simulator
   "android:avd-snapshots:*",
   "projects:*:.dart_tool",

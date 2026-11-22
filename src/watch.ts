@@ -1,5 +1,5 @@
 // watch: tell me BEFORE the disk fills up. It never deletes anything — it measures free space and, when low, sends a notification.
-// Runs as a launchd agent (watch install) that calls `destroyer watch check` every N minutes.
+// Runs as a launchd agent (watch install) that calls `hellbringer watch check` every N minutes.
 import { existsSync, readFileSync, writeFileSync, mkdirSync, unlinkSync, realpathSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { HOME, fmt, short, makeCtx, load, scan, saveCache } from './core'
@@ -17,7 +17,7 @@ export const shouldNotify = (last: number | undefined, now: number, cooldownH: n
 // argv for osascript (no shell). quotes/backslashes escaped so scan data can never break out of the AppleScript string
 export const notifyArgs = (title: string, body: string) => { const q = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"'); return ['osascript', '-e', `display notification "${q(body)}" with title "${q(title)}"`] }
 // reclaim = the same number the home screen's Enter button cleans (tier A), so the notification never promises more than one press delivers
-export const message = (avail: number, thrGB: number, reclaim: number) => ({ title: `destroyer · ที่ว่างเหลือ ${fmt(avail)}`, body: `ล้างได้ปลอดภัย ${fmt(reclaim)} · เปิด Terminal พิมพ์ destroyer แล้วกด Enter ครั้งเดียว (เตือนเมื่อต่ำกว่า ${thrGB} GB · ไม่ลบเอง)` })
+export const message = (avail: number, thrGB: number, reclaim: number) => ({ title: `hellbringer · ที่ว่างเหลือ ${fmt(avail)}`, body: `ล้างได้ปลอดภัย ${fmt(reclaim)} · เปิด Terminal พิมพ์ hellbringer แล้วกด Enter ครั้งเดียว (เตือนเมื่อต่ำกว่า ${thrGB} GB · ไม่ลบเอง)` })
 const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 export function plistFor(o: { bun: string; cli: string; everyMin: number; thresholdGB: number; cooldownH: number; path: string; log: string }) {
   const args = [o.bun, o.cli, 'watch', 'check', '--threshold', String(o.thresholdGB), '--cooldown', String(o.cooldownH)]
@@ -76,7 +76,7 @@ export async function runWatch(sub: string, a: A): Promise<number> {
     launchctl('bootout', `gui/${uid}/${LABEL}`)                       // replace an older copy if any
     const r = launchctl('bootstrap', `gui/${uid}`, plistPath())
     if (r.exitCode !== 0) { out(c.rd('✗ ') + `launchctl bootstrap ล้มเหลว: ${new TextDecoder().decode(r.stderr).trim()}`); return 1 }
-    out(`${c.gr('✓')} ติดตั้งแล้ว — ถอนด้วย ${c.b('destroyer watch uninstall')}`); return 0
+    out(`${c.gr('✓')} ติดตั้งแล้ว — ถอนด้วย ${c.b('hellbringer watch uninstall')}`); return 0
   }
 
   if (sub === 'uninstall') {
@@ -89,8 +89,8 @@ export async function runWatch(sub: string, a: A): Promise<number> {
     const dk = await disk(), last = readState().lastNotify, loaded = launchctl('print', `gui/${uid}/${LABEL}`).exitCode === 0
     rail('WATCH', [`${existsSync(plistPath()) ? c.gr('✓ มีไฟล์ launchd') : c.dim('○ ยังไม่ติดตั้ง')}  ${loaded ? c.gr('· กำลังทำงาน') : c.dim('· ไม่ได้โหลด')}`,
       dk ? `ว่างตอนนี้ ${c.b(fmt(dk.avail))} ${c.dim(`(เกณฑ์เตือนปัจจุบัน ${thr} GB → ${dk.avail < thr * 1e9 ? c.am('ต่ำกว่าเกณฑ์') : 'ปกติ'})`)}` : '',
-      `เตือนล่าสุด ${last ? new Date(last).toLocaleString('th-TH') : c.dim('ยังไม่เคย')}`, '', c.dim('destroyer watch install [--threshold 20] [--every 60] [--cooldown 6]  ·  watch check  ·  watch uninstall')])
+      `เตือนล่าสุด ${last ? new Date(last).toLocaleString('th-TH') : c.dim('ยังไม่เคย')}`, '', c.dim('hellbringer watch install [--threshold 20] [--every 60] [--cooldown 6]  ·  watch check  ·  watch uninstall')])
     return 0
   }
-  out(c.rd('✗ ') + 'ใช้: destroyer watch status | check | install | uninstall'); return 1
+  out(c.rd('✗ ') + 'ใช้: hellbringer watch status | check | install | uninstall'); return 1
 }

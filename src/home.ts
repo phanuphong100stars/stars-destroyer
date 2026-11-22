@@ -12,12 +12,12 @@ export type HomeOpts = { details: boolean; msg: string; cols: number }
 export function homeView(plan: Plan, yes: Set<string>, dk: Disk, o: HomeOpts): { body: string[]; foot: string[] } {
   const w = Math.max(40, o.cols - 4), L: string[] = [], asks = plan.ask.slice(0, 9)
   const picked = asks.filter(q => yes.has(q.key)), autoB = sum(plan.auto), total = autoB + sum(picked.flatMap(q => q.targets)), gate = picked.some(q => q.tier === 'C')
-  L.push(`  ${c.b(gradient('DESTROYER'))} ${c.dim('· ล้างเฉพาะของที่สร้างใหม่ได้')}`)
+  L.push(`  ${c.b(gradient('HELLBRINGER'))} ${c.dim('› DESTROYER · ล้างเฉพาะของที่สร้างใหม่ได้')}`)
   if (dk) L.push(`  ${c.dim('ที่ว่างตอนนี้')} ${meter(1 - dk.avail / dk.total, 20)} ${c.b(fmt(dk.avail))} ${c.dim(`(${((dk.avail / dk.total) * 100).toFixed(1)}%)`)}${dk.avail / dk.total < 0.1 ? c.am(' เหลือน้อย') : ''}`)
   L.push('')
 
   if (!plan.auto.length && !asks.length) {   // nothing to do: say why, in one screen
-    if (plan.skip.length) L.push(`  ${c.am('‖')} ${c.b('ตอนนี้ล้างไม่ได้')} ${c.dim('— แอปเหล่านี้ยังเปิดอยู่')}`, ...[...new Set(plan.skip.map(s => s.owner))].map(x => '    ' + x), '', '  ' + c.dim('ปิดแอปแล้วรัน destroyer ใหม่ · ยังไม่มีอะไรถูกลบ'))
+    if (plan.skip.length) L.push(`  ${c.am('‖')} ${c.b('ตอนนี้ล้างไม่ได้')} ${c.dim('— แอปเหล่านี้ยังเปิดอยู่')}`, ...[...new Set(plan.skip.map(s => s.owner))].map(x => '    ' + x), '', '  ' + c.dim('ปิดแอปแล้วรัน hellbringer ใหม่ · ยังไม่มีอะไรถูกลบ'))
     else L.push(`  ${c.gr('✓')} ${c.b('เครื่องสะอาดแล้ว')} ${c.dim('— ไม่มีอะไรให้ล้างตอนนี้')}`)
     return { body: L, foot: ['  ' + c.dim('[q] ออก')] }
   }
@@ -42,7 +42,7 @@ export function homeView(plan: Plan, yes: Set<string>, dk: Disk, o: HomeOpts): {
       const on = yes.has(q.key)
       L.push(`  ${on ? c.gr('[x]') : c.dim('[ ]')} ${c.dim(String(i + 1))} ${c.hi(q.title)} ${on ? c.gr('ลบ') : c.dim('เก็บไว้')} ${q.tier === 'C' ? c.or('เอากลับยาก') : c.am('โหลดใหม่')}  ${c.b(fmt(q.bytes))}`, '        ' + c.dim(fit(q.why, w - 8)))
     })
-    if (plan.ask.length > asks.length) L.push('  ' + c.dim(`… และอีก ${plan.ask.length - asks.length} ข้อ — ใช้ destroyer --pick เลือกเอง`))
+    if (plan.ask.length > asks.length) L.push('  ' + c.dim(`… และอีก ${plan.ask.length - asks.length} ข้อ — ใช้ hellbringer --pick เลือกเอง`))
   }
 
   const can = plan.auto.length > 0 || picked.length > 0

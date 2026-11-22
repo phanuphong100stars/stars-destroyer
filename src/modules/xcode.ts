@@ -18,7 +18,7 @@ export default {
     const [bdd, bds, bsc] = await Promise.all([du(dd), du(ds), du(sc)])
     if (bdd >= MIN) out.push({ id: 'xcode:derived-data', label: 'Xcode DerivedData', bytes: bdd, tier: 'A', regen: 'Xcode build ใหม่ (ช้าครั้งแรก)', paths: [dd], action: { kind: 'rm', paths: [dd], keepDir: true }, owners: ['Xcode'] })
     if (bds >= MIN) out.push({ id: 'xcode:device-support', label: 'iOS DeviceSupport (symbol เครื่องจริง)', bytes: bds, tier: 'B', regen: 'เสียบเครื่องจริงแล้ว Xcode สร้างใหม่ (หลายนาที)', paths: [ds], action: { kind: 'rm', paths: [ds], keepDir: true }, owners: ['Xcode'] })
-    if (bsc >= MIN) out.push({ id: 'xcode:sim-syscache', label: 'CoreSimulator system cache', bytes: bsc, tier: 'A', regen: 'sim boot ครั้งแรกช้ากว่า (สร้าง cache ใหม่)', paths: [sc], action: { kind: 'sudo', cmd: `sudo rm -rf ${sc}/*` }, owners: ['Simulator'], note: 'ต้อง sudo — destroyer จะพิมพ์คำสั่งให้ ไม่รันเอง' })
+    if (bsc >= MIN) out.push({ id: 'xcode:sim-syscache', label: 'CoreSimulator system cache', bytes: bsc, tier: 'A', regen: 'sim boot ครั้งแรกช้ากว่า (สร้าง cache ใหม่)', paths: [sc], action: { kind: 'sudo', cmd: `sudo rm -rf ${sc}/*` }, owners: ['Simulator'], note: 'ต้อง sudo — hellbringer จะพิมพ์คำสั่งให้ ไม่รันเอง' })
     // simulators (devices + the app data inside)
     const list = JSON.parse((await sh`xcrun simctl list devices -j`.quiet().nothrow().text()) || '{}').devices ?? {}
     const bundles = bundleIds(repos()), devCount: Record<string, number> = {}

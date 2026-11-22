@@ -1,4 +1,4 @@
-// destroyer core — types, config, module loading, scan, sets, path safety.
+// hellbringer core — types, config, module loading, scan, sets, path safety.
 // P1 = read-only: nothing here deletes anything. Targets carry an `action` (data) that a future `apply` will execute.
 import { readdirSync, existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -9,7 +9,7 @@ export type Tier = 'A' | 'B' | 'C'
 export type Action =
   | { kind: 'rm'; paths: string[]; keepDir?: boolean } // keepDir = delete contents, keep the folder
   | { kind: 'exec'; argv: string[] }                    // owner's own tool first (simctl, sdkmanager…)
-  | { kind: 'sudo'; cmd: string }                       // printed for the user, NEVER executed by destroyer
+  | { kind: 'sudo'; cmd: string }                       // printed for the user, NEVER executed by hellbringer
 export type Target = {
   id: string; label: string; bytes: number; tier: Tier; regen: string
   paths: string[]; action: Action; owners?: string[]; note?: string; module?: string
@@ -22,7 +22,7 @@ export type Mod = {
 }
 
 export const HOME = homedir()
-export const CONFIG = process.env.DESTROYER_CONFIG ?? join(HOME, '.config/destroyer')
+export const CONFIG = process.env.DESTROYER_CONFIG ?? join(HOME, '.config/destroyer')   // on-disk names stay "destroyer" (config/cache/log dirs, launchd label, DESTROYER_* env) so existing data and the installed watch keep working after the rename
 export const expand = (p: string) => p.replace(/^~/, HOME)
 export const short = (p: string) => (p.startsWith(HOME) ? '~' + p.slice(HOME.length) : p)
 export const fmt = (b: number) => (b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : Math.round(b / 1e6) + ' MB')
