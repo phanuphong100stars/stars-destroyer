@@ -4,13 +4,14 @@ import { fmt, makeCtx, load, scan, preset, presetMissing, globRe, saveCache, cac
 import { out, c, tierC, banner, rule, rail, Live, SPIN, live } from './ui'
 import { sum, disk, meter, printTargets, summary, infoLines } from './view'
 import { pick } from './tui'
+import { homeScreen } from './home'
 import { applyFlow } from './apply'
 import { runWatch } from './watch'
 import pkg from '../package.json'
 
 const args = process.argv.slice(2)
 const first = args[0] && !args[0].startsWith('--') ? args[0] : undefined
-const cmd = first ?? (args.length ? 'scan' : 'home'), rest = first ? args.slice(1) : args
+const cmd = first ?? (args.length && !args.every(a => a === '--pick' || a === '--fresh') ? 'scan' : 'home'), rest = first ? args.slice(1) : args   // flags alone mean "scan", except --pick/--fresh which modify the main screen
 const flag = (n: string) => { const i = rest.indexOf('--' + n); return i >= 0 && rest[i + 1] && !rest[i + 1].startsWith('--') ? rest[i + 1] : undefined }
 const has = (n: string) => rest.includes('--' + n), json = has('json')
 const die = (m: string): never => { out(c.rd('✗ ') + m); process.exit(1) }
@@ -39,6 +40,12 @@ async function main() {
     if (json) { const r = await doScan(false); return out(JSON.stringify({ preset: preset().name, targets: r.targets, notFound: presetMissing(r.targets), warnings: r.warnings }, null, 1)) }
     banner(pkg.version)
     const r = await doScan(true), dk = await disk(), P = preset(), sel = new Set(r.targets.map(t => t.id))
+    if (cmd === 'home' && live && !has('pick') && !has('no-pick')) {   // bare `destroyer` in a terminal: one screen, one Enter (tier A only; riskier things are yes/no questions)
+      if (!r.targets.length) return void out(c.gr('✓ ไม่มีอะไรให้ล้างตาม preset แล้ว'))
+      const chosen = await homeScreen(r.targets, dk)
+      if (!chosen) return void out(c.dim('ออก — ไม่มีอะไรถูกลบ'))
+      process.exitCode = await applyFlow(r.targets, chosen, { dryRun: false, yes: true, stop: true, quiet: true, label: P.name }); return   // yes = skip DESTROY only when the plan has no tier C (applyFlow enforces)
+    }
     out(); out(`${c.b(`PRESET "${P.name}"`)} ${c.dim(`— ทำได้แค่นี้ (${P.allow.length} รูปแบบใน config/preset.toml) · พบในเครื่อง ${r.targets.length} รายการ`)}`)
     if (!r.targets.length) { out(c.gr('✓ ไม่มีอะไรให้ล้างตาม preset แล้ว')); return }
     printTargets(r.targets, sel); summary(P.name, r.targets, sel, [], dk)
@@ -50,7 +57,7 @@ async function main() {
       if (!chosen || !chosen.size) return void out(c.dim('ออก — ไม่ได้เลือกอะไร ไม่มีอะไรถูกลบ'))
       process.exitCode = await applyFlow(r.targets, chosen, { dryRun: false, yes: false, stop: has('stop-daemons'), label: P.name }); return
     }
-    cacheNote(); out(); return out(c.dim('ต่อไป:  destroyer (ติ๊ก/เอาออก → พิมพ์ DESTROY)  ·  destroyer apply --dry-run  ·  destroyer show <id>  ·  destroyer preset'))
+    cacheNote(); out(); return out(c.dim('ต่อไป:  destroyer (กด Enter ล้างเลย)  ·  destroyer --pick (เลือกเอง)  ·  destroyer apply --dry-run  ·  destroyer show <id>  ·  destroyer preset'))
   }
   if (cmd === 'apply') {
     const r = await doScan(false), skip = (flag('skip') ?? '').split(',').filter(Boolean).map(globRe)
@@ -71,7 +78,7 @@ async function main() {
   }
   if (cmd === 'watch') { process.exitCode = await runWatch(rest[0] ?? 'status', { flag, has }); return }
   out(rule('destroyer — ล็อกเป็น preset เดียว'))
-  for (const [a, b] of [['destroyer', 'แสดงเฉพาะสิ่งที่จะล้าง → เอาออกได้ → แผน → พิมพ์ DESTROY → ลบ (ใน terminal)'], ['scan [--json]', 'ดูอย่างเดียว — ไม่ลบ'], ['apply [--dry-run] [--yes] [--skip id,…]', 'ลบตาม preset แบบไม่ติ๊ก · --yes (ไม่มี tier C) · --stop-daemons'], ['show <id>', 'รายละเอียดของรายการใน preset'], ['preset', 'preset อนุญาตอะไรบ้าง และเจอในเครื่องกี่รายการ'], ['watch status|check|install|uninstall', 'เตือนก่อนดิสก์เต็ม (ไม่ลบเอง)']]) out(`  ${c.hi(a.padEnd(40))} ${c.dim(b)}`)
+  for (const [a, b] of [['destroyer', 'หน้าเดียว: ล้างได้เลย (กด Enter) + ขอถามก่อน (ใช่/ไม่) → ลบ (ใน terminal)'], ['destroyer --pick', 'โหมดเลือกเอง: ติ๊ก/เอาออกทีละรายการ → แผน → พิมพ์ DESTROY'], ['scan [--json]', 'ดูอย่างเดียว — ไม่ลบ'], ['apply [--dry-run] [--yes] [--skip id,…]', 'ลบตาม preset แบบไม่ติ๊ก · --yes (ไม่มี tier C) · --stop-daemons'], ['show <id>', 'รายละเอียดของรายการใน preset'], ['preset', 'preset อนุญาตอะไรบ้าง และเจอในเครื่องกี่รายการ'], ['watch status|check|install|uninstall', 'เตือนก่อนดิสก์เต็ม (ไม่ลบเอง)']]) out(`  ${c.hi(a.padEnd(40))} ${c.dim(b)}`)
   out(c.dim('\n' + LOCKED))
 }
 main().then(() => process.exit(process.exitCode ?? 0), e => { out(c.rd('✗ ') + (e?.stack ?? e)); process.exit(1) })

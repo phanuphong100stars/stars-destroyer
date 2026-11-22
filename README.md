@@ -14,7 +14,7 @@
 
 [เริ่มใช้](#เริ่มใช้-ใน-3-นาที) · [ลบอะไรได้บ้าง](#ลบอะไรได้บ้าง-preset) · [ความปลอดภัย](#ความปลอดภัย) · [คำสั่ง](#คำสั่ง) · [Watch](#watch--เตือนก่อนดิสก์เต็ม) · [FAQ](#faq)
 
-`macOS` · `bun` · ไม่มี dependency · 19 tests · v0.4.0
+`macOS` · `bun` · ไม่มี dependency · 28 tests · v0.4.0
 
 </div>
 
@@ -31,7 +31,7 @@ Mac ของคน Flutter / iOS / Android เต็มเร็วมาก �
 |---|---|
 | 🎯 **แสดงเฉพาะที่จะล้าง** | ไม่มีรายการ "ทั้งหมดในเครื่อง" ให้เลือกพลาด — เห็นแค่สิ่งที่อยู่ใน preset |
 | 🔒 **ลบได้แค่นั้นจริง** | ตัวลบปฏิเสธทุกอย่างที่ไม่อยู่ใน `config/preset.toml` ไม่ว่าจะเรียกจากทางไหน (มีเทส) |
-| 👀 **ดูก่อนลบเสมอ** | สแกน → แผน → พิมพ์ `DESTROY` ถึงจะลงมือ · `--dry-run` ไม่แตะอะไรเลย |
+| 👀 **ดูก่อนลบเสมอ** | เห็นยอดที่จะได้คืนก่อนกด Enter · ของที่เอากลับยาก (tier C) ต้องพิมพ์ `DESTROY` · `--dry-run` ไม่แตะอะไรเลย |
 | 🧯 **ไม่ลบใต้เท้าแอปที่เปิดอยู่** | VS Code / Xcode / Simulator / emulator รันอยู่ = ข้ามเป้านั้น |
 
 > ทำงานคู่กับ Mole ได้: Mole ดูแลของทั่วไป (cache, browser, brew) · destroyer ดูแล preset ของ mobile dev
@@ -45,7 +45,7 @@ Mac ของคน Flutter / iOS / Android เต็มเร็วมาก �
 ```bash
 git clone git@github.com:phanuphong100stars/stars-destroyer.git ~/Project/Personal/destroyer
 cd ~/Project/Personal/destroyer
-bun test                                                          # 19 tests ควรผ่านหมด
+bun test                                                          # 28 tests ควรผ่านหมด
 chmod +x src/cli.ts && ln -s "$PWD/src/cli.ts" ~/.local/bin/destroyer   # ให้พิมพ์สั้นๆ ว่า destroyer
 ```
 
@@ -54,7 +54,7 @@ chmod +x src/cli.ts && ln -s "$PWD/src/cli.ts" ~/.local/bin/destroyer   # ให
 | ขั้น | คำสั่ง | ได้อะไร |
 |---|---|---|
 | 1 | `destroyer apply --dry-run` | ดูแผนทั้งหมด **ไม่ลบอะไร** |
-| 2 | `destroyer` | หน้าจอรายการ → เอาตัวที่อยากเก็บออกด้วย `space` → พิมพ์ `DESTROY` |
+| 2 | `destroyer` | หน้าเดียว: เห็นยอด “ล้างได้เลย” → กด `Enter` ของที่เสี่ยงกว่าเป็นคำถามใช่/ไม่ (ค่าเริ่มต้นคือเก็บไว้) |
 | 3 | ดูสรุปท้ายจอ | ขนาดที่คืน + คำสั่ง `sudo` (ถ้ามี) ให้คัดลอกไปรันเอง |
 
 <details>
@@ -83,14 +83,18 @@ PRESET "sweep" — ทำได้แค่นี้ (20 รูปแบบใ�
 ## ทำงานยังไง
 
 ```
-destroyer ─▶ สแกน ─▶ รายการใน preset ─▶ แผน + gates ─▶ พิมพ์ DESTROY ─▶ ลบ ─▶ สรุป + log
-                       (เอาออกได้)       │                │
-                                         ├ path ผ่าน checkPath?
-                                         ├ แอปเจ้าของกำลังรัน? → ข้าม
-                                         └ มี tier C? → ต้องพิมพ์ DESTROY เสมอ
+destroyer ─▶ สแกน ─▶ หน้าเดียว (plan.ts แยกให้เอง) ─▶ Enter ─▶ ลบ ─▶ สรุป + log
+                       │
+                       ├ ล้างได้เลย  = tier A · กด Enter ครั้งเดียว ไม่ถามอะไร
+                       ├ ขอถามก่อน   = tier B/C รวมเป็นคำถามใช่/ไม่ต่อกลุ่ม · ค่าเริ่มต้นคือเก็บไว้
+                       │               (ตอบ “ลบ” ให้ tier C → ต้องพิมพ์ DESTROY หนึ่งครั้ง)
+                       ├ แอปเจ้าของรันอยู่ → Gradle daemon / Dart server หยุดให้เอง · แอปอื่นข้ามพร้อมบอกเหตุผล
+                       └ ทุก path ยังผ่าน checkPath + preset lock ที่ตัวลบเหมือนเดิม
 ```
 
-หน้าจอเลือก: `↑↓`/`jk` เลื่อน · `space` เลือก/เอาออก · **`i` ดูข้างใน** (path, ลบแล้วเกิดอะไร, สิ่งที่จะทำ, แอปเจ้าของรันอยู่ไหม) · `a` tier A · `n` ไม่เลือก · `s` เลือกทั้งหมดตาม preset · `enter` ไปต่อ · `q` ออก (ออกที่ไหนก็ไม่ลบอะไร)
+หน้าแรก: ตัวเลขใหญ่ = ยอดที่ Enter จะล้างจริง · `1`–`9` สลับคำตอบของแต่ละคำถาม · `d` ดูละเอียด (id, path) · `enter` ล้าง · `q` ออก (ออกที่ไหนก็ไม่ลบอะไร)
+
+อยากเลือกทีละรายการเอง: `destroyer --pick` — `↑↓`/`jk` เลื่อน · `space` เลือก/เอาออก · **`i` ดูข้างใน** · `a` tier A · `n` ไม่เลือก · `s` เลือกทั้งหมดตาม preset · `enter` ไปต่อ (ต้องผ่านแผน + พิมพ์ `DESTROY`) · `q` ออก
 
 ---
 
@@ -134,8 +138,8 @@ destroyer **จะไม่**:
 | ตาม symlink ออกไปลบที่อื่น | ปฏิเสธเป้าที่เป็น symlink · symlink ข้างในถูกลบแค่ตัวลิงก์ · ตรวจ `realpath` ซ้ำ |
 | รันคำสั่งผ่าน shell | ใช้ argv ตรงๆ · คำสั่งภายนอกมี allowlist 4 รูป: `xcrun simctl delete`, `xcrun simctl runtime delete`, `avdmanager delete avd`, `sdkmanager --uninstall` |
 | รันเป็น root | ขั้นที่ต้อง `sudo` ถูก **พิมพ์ให้** คัดลอกไปรันเอง |
-| ลบใต้เท้าแอปที่เปิดอยู่ | เช็ก process เจ้าของ → ข้ามเป้านั้น (Gradle daemon / Dart analysis server ถามให้หยุดได้ `y/N`) |
-| ลบโดยไม่ถาม | dry-run ก่อน · ต้องพิมพ์ `DESTROY` · ไม่มี TTY ต้อง `--yes` และแผนห้ามมี tier C |
+| ลบใต้เท้าแอปที่เปิดอยู่ | เช็ก process เจ้าของ → ข้ามเป้านั้น (Gradle daemon / Dart analysis server หยุดให้เองเพราะเปิดกลับมาเองได้) |
+| ลบโดยไม่ถาม | Enter ล้างเฉพาะ tier A (สร้างใหม่เองได้) · tier B/C ต้องตอบ “ลบ” เอง และ tier C ต้องพิมพ์ `DESTROY` · ไม่มี TTY ต้อง `--yes` และแผนห้ามมี tier C |
 | ลบจาก `watch` | `watch` แค่วัดพื้นที่ว่างแล้วเตือน |
 
 ทุกการลบเขียน log: `~/Library/Logs/destroyer/YYYY-MM-DD.jsonl`
@@ -146,7 +150,8 @@ destroyer **จะไม่**:
 
 | คำสั่ง | ทำอะไร |
 |---|---|
-| `destroyer` | สแกน → รายการ preset (ติ๊กไว้ทั้งหมด) → แผน + gates → `DESTROY` → ลบ → สรุป *(ต้องรันใน terminal)* |
+| `destroyer` | สแกน → หน้าเดียว (ล้างได้เลย + คำถามใช่/ไม่) → `Enter` → ลบ → สรุป · คำสั่ง sudo ถูกคัดลอกไว้ในคลิปบอร์ดให้ · จบแล้วเสนอเปิดเตือนดิสก์ครั้งเดียว *(ต้องรันใน terminal)* |
+| `destroyer --pick` | โหมดเลือกเอง: ติ๊ก/เอาออกทีละรายการ → แผน + gates → `DESTROY` → ลบ (หน้าหลักแบบเดิม) |
 | `destroyer scan [--json]` | ดูอย่างเดียว ไม่ลบ |
 | `destroyer apply [--dry-run] [--yes] [--skip id,…] [--stop-daemons]` | ลบตาม preset แบบไม่ติ๊ก · `--dry-run` ดูแผนเฉยๆ · `--yes` ข้าม `DESTROY` (**เฉพาะแผนไม่มี tier C**) · `--skip` เอาออกอย่างเดียว เพิ่มไม่ได้ · `--stop-daemons` หยุด Gradle daemon / Dart analysis server ให้เอง |
 | `destroyer show <id>` | รายละเอียดของรายการใน preset |
@@ -177,7 +182,7 @@ destroyer watch uninstall
 <details>
 <summary><b>ทำไมบางรายการถูกข้าม ("‖ … กำลังรัน")?</b></summary>
 
-เจ้าของของนั้นยังเปิดอยู่ — เช่น VS Code เปิดอยู่เลยข้าม `vscode:*` (ลบ cache ใต้เท้าแอปที่ใช้อยู่ไม่ปลอดภัย). ปิดแอปแล้วรันใหม่. Gradle daemon กับ Dart analysis server ถามให้หยุดให้ได้ (`y/N`) หรือใส่ `--stop-daemons`.
+เจ้าของของนั้นยังเปิดอยู่ — เช่น VS Code เปิดอยู่เลยข้าม `vscode:*` (ลบ cache ใต้เท้าแอปที่ใช้อยู่ไม่ปลอดภัย). ปิดแอปแล้วรันใหม่. Gradle daemon กับ Dart analysis server หยุดให้เองอัตโนมัติ (หน้าแรกบอกไว้ล่วงหน้า) — ใน `destroyer apply` ต้องใส่ `--stop-daemons` เอง.
 </details>
 
 <details>
@@ -220,11 +225,13 @@ src/
   cli.ts             ← คำสั่ง
   core.ts            ← preset, scan, checkPath, ขนาด + cache
   exec.ts            ← ที่เดียวที่ลบ (allowlist, ตรวจ owner, log)
-  apply.ts           ← plan → gates → DESTROY → run → สรุป
-  tui.ts · view.ts · ui.ts   ← หน้าจอเลือก/รัน และการแสดงผล
+  plan.ts            ← แยก target เป็น ล้างได้เลย / ขอถามก่อน (pure, ทดสอบได้)
+  home.ts            ← หน้าแรก (หน้าเดียว) · tui.ts = หน้าเลือก --pick + หน้ารัน
+  apply.ts           ← plan → gates → (DESTROY ถ้ามี tier C) → run → สรุป
+  view.ts · ui.ts    ← การแสดงผลร่วม
   watch.ts           ← เตือนก่อนดิสก์เต็ม (launchd)
   modules/           ← ตัวสแกน: xcode android gradle dart projects ai vscode stale-projects
-test/                ← bun test (19 tests)
+test/                ← bun test (28 tests)
 ```
 
 - module ส่ง **ข้อมูล** กลับ (path, ขนาด, tier, action) — ไม่ลบเอง; มีแต่ `exec.ts` ที่ลบ
@@ -239,13 +246,14 @@ test/                ← bun test (19 tests)
 <summary><b>สิ่งที่ตรวจแล้ว / ยังไม่ได้ตรวจ</b> (เปิดอ่านก่อนใช้ครั้งแรก)</summary>
 
 **ตรวจแล้ว**
-- เทส 19 ข้อ: กฎ path · preset (รูปแบบ/การล็อก/ปฏิเสธ id นอก preset แม้ path ถูก) · การลบจริงบนโฟลเดอร์ชั่วคราว (ลบ/เก็บโฟลเดอร์/symlink/ปฏิเสธ/dry-run) · allowlist คำสั่ง · ตรวจแอปที่รัน · `watch`
+- เทส 28 ข้อ: Java สำหรับ sdkmanager/avdmanager · การแยกถัง/หน้าแรก (`plan.ts`, `home.ts`) · กฎ path · preset (รูปแบบ/การล็อก/ปฏิเสธ id นอก preset แม้ path ถูก) · การลบจริงบนโฟลเดอร์ชั่วคราว (ลบ/เก็บโฟลเดอร์/symlink/ปฏิเสธ/dry-run) · allowlist คำสั่ง · ตรวจแอปที่รัน · `watch`
 - ทดสอบครบวงจรบน **HOME ปลอม**: scan โชว์เฉพาะ preset · ยัด module/`targets.toml` เอง, `--only`, `--set`, คำสั่งที่ถูกถอด → ลบของนอก preset ไม่ได้ · หน้าจอเลือก/รันผ่านเทอร์มินัลเสมือน
 
 **ยังไม่ได้ตรวจ**
-- ❗ **ยังไม่เคยรันลบบนข้อมูลจริง** — ครั้งแรกให้เริ่มจาก `destroyer apply --dry-run`
-- ❗ คำสั่งภายนอก (`simctl delete`, `simctl runtime delete`, `avdmanager`, `sdkmanager`) ผ่านเทสแค่ฝั่ง allowlist ไม่เคยถูกรันจริง เพราะจะแก้ระบบจริง
-- แท่งในหน้ารันเป็นแอนิเมชันตามเวลา ไม่ใช่ความคืบหน้าจริงของ `rm` (เป้าใหญ่ช้าจะค้างราว 92% จนเสร็จ)
+- รันลบจริงบนเครื่องจริงแล้วเมื่อ 2026-11-21 (log: `~/Library/Logs/destroyer/2026-11-21.jsonl`): สำเร็จ 15 · ล้มเหลว 3 · คืนพื้นที่ 40.94 GB — ครั้งแรกบนเครื่องใหม่ให้เริ่มจาก `destroyer apply --dry-run`
+- ❗ `avdmanager`/`sdkmanager` ล้มเหลว 3 รายการในรอบจริง เพราะเครื่องไม่มี `JAVA_HOME` และไม่มี Java ของระบบ ("Unable to locate a Java Runtime") — แก้แล้ว: ส่ง `JAVA_HOME` เป็น JDK ในตัวของ Android Studio ให้คำสั่งลูก (เฉพาะเมื่อ `JAVA_HOME` ว่างหรือใช้ไม่ได้) ยืนยันด้วยมือแล้วว่า `avdmanager list avd` ทำงานได้ด้วย JDK นั้น แต่ **ยังไม่ได้รันลบจริงซ้ำหลังแก้** · `simctl delete` / `simctl runtime delete` ยังไม่เคยถูกรันจริง
+- หน้ารันไม่แสดง % เพราะ `rm` ไม่รายงานความคืบหน้า — แถวที่กำลังลบแสดงเวลาที่ผ่านไป ส่วนความคืบหน้ารวมนับเป็น “เสร็จ n จาก m รายการ”
+- หน้าแรกใหม่ (`destroyer`) ทดสอบผ่านเทอร์มินัลเสมือนบน HOME ปลอม 4 กรณี: `q` ออก · Enter ครั้งเดียว (tier A เท่านั้น ไม่ถาม DESTROY) · ตอบ “ลบ” tier C แล้วพิมพ์ DESTROY · พิมพ์ยืนยันผิด = ไม่ลบอะไร · ยังไม่เคยลบของจริงบนเครื่องจริง และการหยุด Gradle daemon อัตโนมัติยังไม่ได้ทดสอบกับ daemon จริง
 - `watch` ผ่านเทสบน HOME ปลอมและ `plutil -lint`; การเด้งแจ้งเตือนจริงไม่ได้ถูกยิงในเทส
 </details>
 

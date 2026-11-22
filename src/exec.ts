@@ -1,5 +1,5 @@
 // the only place that deletes anything. Every path is re-checked right before removal; symlinks are never followed.
-import { lstatSync, readdirSync, realpathSync, appendFileSync, mkdirSync } from 'node:fs'
+import { lstatSync, readdirSync, realpathSync, appendFileSync, mkdirSync, existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { checkPath, HOME, setExecCheck, inPreset, preset, type Preset, type Target } from './core'
@@ -18,6 +18,18 @@ export function checkExec(argv: string[]): string | null {
 }
 
 setExecCheck(checkExec)
+
+// sdkmanager/avdmanager are shell scripts that need a JDK. Many Macs have no system Java and no JAVA_HOME, but Android Studio ships one (JBR) —
+// the same one Flutter falls back to. Use it only when JAVA_HOME is unset or points nowhere (2026-11-21: all 3 sdkmanager/avdmanager targets failed on this).
+const STUDIO = ['/Applications/Android Studio.app', `${HOME}/Applications/Android Studio.app`, '/Applications/Android Studio Preview.app']
+const hasJava = (home: string) => existsSync(join(home, 'bin/java'))
+export function javaEnv(env: Record<string, string | undefined> = process.env, ok: (javaHome: string) => boolean = hasJava) {
+  if (env.JAVA_HOME && ok(env.JAVA_HOME)) return env
+  const jbr = STUDIO.map(s => join(s, 'Contents/jbr/Contents/Home')).find(ok)
+  return jbr ? { ...env, JAVA_HOME: jbr } : env
+}
+const JAVA_TOOLS = ['sdkmanager', 'avdmanager']
+const noJava = (err: string) => /Unable to locate a Java Runtime/i.test(err) ? 'ไม่เจอ Java — ตั้ง JAVA_HOME หรือติดตั้ง Android Studio (มี JDK ในตัว) · ' : ''
 
 // ---- who owns a target: don't delete under a running app
 const OWNER: Record<string, { pat: string; stop?: boolean }> = {
@@ -62,9 +74,9 @@ export async function applyTarget(t: Target, o: { home?: string; dryRun?: boolea
   try {
     if (a.kind === 'exec') {
       const bad = checkExec(a.argv); if (bad) return res('failed', bad)
-      const p = Bun.spawn(a.argv, { stdout: 'pipe', stderr: 'pipe' })
+      const p = Bun.spawn(a.argv, { stdout: 'pipe', stderr: 'pipe', env: JAVA_TOOLS.includes(a.argv[0].split('/').pop()!) ? javaEnv() : undefined })
       const [code, err] = await Promise.all([p.exited, new Response(p.stderr).text()])
-      return code === 0 ? res('done') : res('failed', (err.trim() || `exit ${code}`).slice(0, 200))
+      return code === 0 ? res('done') : res('failed', (noJava(err) + (err.trim() || `exit ${code}`)).slice(0, 240))
     }
     let removed = 0
     for (const p of a.paths) removed += await removePath(p, !!a.keepDir, home)

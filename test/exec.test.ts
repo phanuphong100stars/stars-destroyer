@@ -2,7 +2,7 @@ import { test, expect, beforeEach } from 'bun:test'
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, symlinkSync, realpathSync, readdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { applyTarget, checkExec, runningOwner, ownerPattern } from '../src/exec'
+import { applyTarget, checkExec, runningOwner, ownerPattern, javaEnv } from '../src/exec'
 import { validateTarget, type Target } from '../src/core'
 
 let home = '', outside = ''
@@ -61,4 +61,22 @@ test('PRESET LOCK: a target outside the preset is refused — nothing deleted, n
   expect(r.status).toBe('failed'); expect(r.message).toContain('preset'); expect(existsSync(d)).toBe(true)
   expect((await applyTarget({ ...outsider, id: 't' }, { home, preset: PRE })).status).toBe('done')   // same target under an allowed id works
   expect((await applyTarget({ ...rmT([]), id: 'xcode:runtime:26.5', action: { kind: 'exec', argv: ['xcrun', 'simctl', 'runtime', 'delete', '9ABE4519-2D91-4A60-BE6D-574410B0B499'] } }, { home, preset: PRE })).status).toBe('failed')
+})
+
+const JBR = '/Applications/Android Studio.app/Contents/jbr/Contents/Home'
+test('javaEnv: keeps a working JAVA_HOME; otherwise falls back to the Android Studio JDK; otherwise leaves env alone', () => {
+  const has = (...paths: string[]) => (p: string) => paths.includes(p)
+  expect(javaEnv({ JAVA_HOME: '/my/jdk', PATH: 'x' }, has('/my/jdk'))).toEqual({ JAVA_HOME: '/my/jdk', PATH: 'x' })      // user's own JDK wins
+  expect(javaEnv({ PATH: 'x' }, has(JBR))).toEqual({ PATH: 'x', JAVA_HOME: JBR })                                      // unset → Studio's JBR (the 2026-11-21 failure)
+  expect(javaEnv({ JAVA_HOME: '', PATH: 'x' }, has(JBR)).JAVA_HOME).toBe(JBR)                                          // empty string counts as unset
+  expect(javaEnv({ JAVA_HOME: '/gone', PATH: 'x' }, has(JBR)).JAVA_HOME).toBe(JBR)                                     // stale JAVA_HOME → fall back
+  const none = { PATH: 'x' }; expect(javaEnv(none, has())).toBe(none)                                                  // nothing found → untouched, tool reports its own error
+})
+test('exec of sdkmanager/avdmanager gets a JAVA_HOME, and a missing-Java failure says what to do', async () => {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'dsdk-'))), bin = join(dir, 'sdkmanager')
+  writeFileSync(bin, '#!/bin/sh\necho "JH=$JAVA_HOME" >&2\n[ -n "$JAVA_HOME" ] && exit 0\necho "The operation couldn\'t be completed. Unable to locate a Java Runtime." >&2\nexit 1\n', { mode: 0o755 })
+  const t: Target = { ...rmT([]), action: { kind: 'exec', argv: [bin, '--uninstall', 'ndk;28.2'] } }
+  const prev = process.env.JAVA_HOME; process.env.JAVA_HOME = '/nonexistent-jdk'
+  try { const r = await applyTarget(t, { home, preset: PRE }); expect(r.status === 'done' || (r.status === 'failed' && r.message!.includes('ไม่เจอ Java'))).toBe(true) }   // machine without Android Studio → clear hint instead of a raw stack
+  finally { prev === undefined ? delete process.env.JAVA_HOME : (process.env.JAVA_HOME = prev) }
 })

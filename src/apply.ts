@@ -4,7 +4,10 @@ import { applyTarget, runningOwner, stopOwner, stoppable, logLine, logFile, type
 import { runScreen } from './tui'
 import { printTargets, disk, sum, fit, describe } from './view'
 import { out, c, live, rail, rule, word, color, gradient } from './ui'
+import { runWatch, plistPath } from './watch'
+import { existsSync } from 'node:fs'
 
+const copyText = (s: string) => { try { return Bun.spawnSync(['pbcopy'], { stdin: Buffer.from(s) }).exitCode === 0 } catch { return false } }   // argv, no shell
 const prio = (t: Target) => (t.action.kind === 'exec' && t.action.argv.includes('runtime') ? 2 : t.action.kind === 'sudo' ? 3 : 0) // devices before the runtime they live on; sudo last
 const yes = (q: string) => (prompt(q) ?? '').trim().toLowerCase() === 'y'
 
@@ -18,18 +21,21 @@ async function runPlain(items: Target[], run: (t: Target) => Promise<Outcome>, s
   return res
 }
 
-export async function applyFlow(all: Target[], ids: Set<string>, o: { dryRun: boolean; yes: boolean; stop: boolean; label: string }): Promise<number> {
+// quiet = the home-screen flow: the user already saw and chose the plan, so skip the PLAN/GATES printout and only report what matters
+export async function applyFlow(all: Target[], ids: Set<string>, o: { dryRun: boolean; yes: boolean; stop: boolean; label: string; quiet?: boolean }): Promise<number> {
   const plan = all.filter(t => ids.has(t.id) && inPreset(t.id)).sort((a, b) => prio(a) - prio(b) || a.bytes - b.bytes)
   if (!plan.length) { out(c.am('ไม่มีรายการให้ลบ')); return 0 }
   const dk0 = await disk(), nC = plan.filter(t => t.tier === 'C').length, sudoB = sum(plan.filter(t => t.action.kind === 'sudo'))
-  out(); out(rule('PLAN', c.dim, c.dim(o.dryRun ? 'dry-run — ไม่ลบอะไร' : `ชุด ${o.label}`)))
-  printTargets(plan.slice().sort((a, b) => a.tier.localeCompare(b.tier) || b.bytes - a.bytes), new Set(plan.map(t => t.id)))
-  out(); out(`  ${c.b('รวม ' + plan.length + ' targets')} · ${fmt(sum(plan))} · ลบได้จริง ${c.gr(c.b(fmt(sum(plan) - sudoB)))} · tier C ${nC} ตัว${sudoB ? c.dim(` · sudo ${fmt(sudoB)} จะพิมพ์ให้ ไม่รันเอง`) : ''}`)
+  if (!o.quiet) {
+    out(); out(rule('PLAN', c.dim, c.dim(o.dryRun ? 'dry-run — ไม่ลบอะไร' : `ชุด ${o.label}`)))
+    printTargets(plan.slice().sort((a, b) => a.tier.localeCompare(b.tier) || b.bytes - a.bytes), new Set(plan.map(t => t.id)))
+    out(); out(`  ${c.b('รวม ' + plan.length + ' targets')} · ${fmt(sum(plan))} · ลบได้จริง ${c.gr(c.b(fmt(sum(plan) - sudoB)))} · tier C ${nC} ตัว${sudoB ? c.dim(` · sudo ${fmt(sudoB)} จะพิมพ์ให้ ไม่รันเอง`) : ''}`)
+  }
   if (o.dryRun) { out(); for (const t of plan) { out(`  ${c.dim('would:')} ${c.hi(t.id)}`); out(`         ${c.dim(fit(describe(t), 120))}`) }; out(); out(`${c.gr('✓')} dry-run เสร็จ — ไม่มีอะไรถูกลบ`); return 0 }
 
   // ---- gates
-  out(); out(rule('GATES'))
-  out(`${c.gr('✓')} allowlist · ทุก path ผ่าน checkPath (${plan.length}/${plan.length}) · ไม่มี symlink/tier D ในแผน`)
+  if (!o.quiet) { out(); out(rule('GATES')); out(`${c.gr('✓')} allowlist · ทุก path ผ่าน checkPath (${plan.length}/${plan.length}) · ไม่มี symlink/tier D ในแผน`) }
+  else out()
   const owners = [...new Set(plan.flatMap(t => t.owners ?? []))], blocked = new Map<string, number[]>()
   for (const ow of owners) {
     let pids = runningOwner(ow); if (!pids.length) continue
@@ -40,9 +46,9 @@ export async function applyFlow(all: Target[], ids: Set<string>, o: { dryRun: bo
   }
   const isBlocked = (t: Target) => (t.owners ?? []).some(x => blocked.has(x)), skipped = plan.filter(isBlocked), runnable = plan.filter(t => !isBlocked(t))
   for (const [ow, pids] of blocked) out(`${c.am('‖')} ${ow} กำลังรัน (pid ${pids.slice(0, 3).join(', ')}) — ข้าม ${plan.filter(t => t.owners?.includes(ow)).length} เป้าที่ต้องรอ (ปิดแล้วรันใหม่ได้)`)
-  if (!blocked.size) out(`${c.gr('✓')} ไม่มีแอปเจ้าของที่กำลังรัน`)
+  if (!blocked.size && !o.quiet) out(`${c.gr('✓')} ไม่มีแอปเจ้าของที่กำลังรัน`)
   if (!runnable.length) { out(c.am('ไม่มีอะไรลบได้ตอนนี้ — ทุกเป้าติดแอปที่กำลังรัน')); return 2 }
-  out(`${c.gr('✓')} log · ${short(logFile())}`)
+  if (!o.quiet) out(`${c.gr('✓')} log · ${short(logFile())}`)
 
   // ---- confirm
   const hasC = runnable.some(t => t.tier === 'C'); out()
@@ -68,7 +74,10 @@ export async function applyFlow(all: Target[], ids: Set<string>, o: { dryRun: bo
     `คืนพื้นที่ (ตามขนาดที่สแกน) ${c.gr(c.b(fmt(claimed)))}${dk0 && dk1 ? ` · วัดจริงจาก df ${fmt(Math.max(0, dk1.avail - dk0.avail))} ${c.dim('(APFS อาจอัปเดตช้า)')}` : ''}`, dk1 ? `ว่างตอนนี้ ${c.b(fmt(dk1.avail))}` : '']
   for (const r of failed) L.push(`${c.rd('✗')} ${r.id}: ${r.message}`)
   for (const r of printed) L.push('', c.dim('ขั้นที่ต้อง sudo — ไม่ได้รันให้ (กติกา: ไม่รันเป็น root) คัดลอกไปรันเองได้:'), c.am(r.cmd ?? ''))
+  if (live && printed.length && copyText(printed.map(r => r.cmd).join('\n'))) L.push(c.gr('✓ คัดลอกคำสั่งไว้ในคลิปบอร์ดแล้ว — วางใน Terminal แล้วกด Enter'))   // only when interactive: never touch the clipboard from scripts
   if (regens.length) L.push('', c.dim('หลังจากนี้: ' + regens.join(' · ')))
   rail(failed.length ? 'เสร็จ (มีที่ล้มเหลว)' : 'DESTROYED', [...L, '', c.dim('log: ' + short(logFile()))], failed.length ? c.am : c.vi)
+  // one-time offer after a real clean from the home screen (watch only measures free space and notifies; it never deletes)
+  if (o.quiet && live && done.length && !existsSync(plistPath()) && (prompt('เตือนเมื่อที่ว่างต่ำกว่า 20 GB ไหม? (เตือนอย่างเดียว ไม่ลบเอง) [y/N] ') ?? '').trim().toLowerCase() === 'y') await runWatch('install', { flag: () => undefined, has: n => n === 'yes' })
   return failed.length ? 1 : 0
 }

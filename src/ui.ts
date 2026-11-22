@@ -63,11 +63,4 @@ export class Live {
   stop() { if (!live) return; clearInterval(this.timer); this.draw(); process.stdout.write('\x1b[?25h') }
 }
 export const SPIN = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-// a bar that "shatters" left→right as p goes 0→1 (burning edge ▓▒░), all gone at p=1
-export function shatter(th: number[], p: number, paint: (s: string) => string) {
-  let o = '', run = '', k0 = ''
-  const flush = () => { if (run) o += k0 === 'main' ? paint(run) : k0 === 'or' ? c.or(run) : k0 === 'rd' ? c.rd(run) : k0 === 'vi' ? c.vi(run) : run; run = '' }
-  for (const t of th) { const x = p - t, [ch, k] = x < 0 ? ['█', 'main'] : x < 0.07 ? ['▓', 'or'] : x < 0.14 ? ['▒', 'rd'] : x < 0.22 ? ['░', 'vi'] : [' ', 'sp']; if (k !== k0) { flush(); k0 = k } run += ch }
-  flush(); return o
-}
 export const word = (w: string) => bigText(w, GL, cols() >= 112)
